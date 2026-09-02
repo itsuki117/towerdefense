@@ -49,5 +49,17 @@ func add_gold(amount: int) -> void:
 	gold += amount
 
 
+func can_afford(cost: int) -> bool:
+	return gold >= cost
+
+
+## 支払えたら true。足りなければ何も減らさず false。
+func spend_gold(cost: int) -> bool:
+	if not can_afford(cost):
+		return false
+	gold -= cost
+	return true
+
+
 func damage_base(amount: int) -> void:
 	lives -= amount

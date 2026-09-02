@@ -1,8 +1,8 @@
-[gd_scene load_steps=23 format=3]
+[gd_scene format=3 uid="uid://qyo12mas4xpp"]
 
-[ext_resource type="Script" path="res://scripts/road_visual.gd" id="1_road_visual"]
-[ext_resource type="Script" path="res://scripts/wave_manager.gd" id="2_wave_manager"]
-[ext_resource type="Script" path="res://scripts/debug_hud.gd" id="3_debug_hud"]
+[ext_resource type="Script" uid="uid://xmocfgxxw1wc" path="res://scripts/road_visual.gd" id="1_road_visual"]
+[ext_resource type="Script" uid="uid://b4ol4218moxot" path="res://scripts/wave_manager.gd" id="2_wave_manager"]
+[ext_resource type="Script" path="res://scripts/hud.gd" id="3_hud"]
 [ext_resource type="PackedScene" path="res://scenes/enemy.tscn" id="4_enemy"]
 [ext_resource type="PackedScene" path="res://scenes/tower.tscn" id="5_tower"]
 [ext_resource type="Resource" path="res://resources/towers/tower_arrow.tres" id="6_tower_arrow"]
@@ -14,6 +14,8 @@
 [ext_resource type="Resource" path="res://resources/waves/wave_06.tres" id="12_wave_06"]
 [ext_resource type="Resource" path="res://resources/waves/wave_07.tres" id="13_wave_07"]
 [ext_resource type="Resource" path="res://resources/waves/wave_08.tres" id="14_wave_08"]
+[ext_resource type="Script" path="res://scripts/build_manager.gd" id="15_build_manager"]
+[ext_resource type="PackedScene" path="res://scenes/build_spot.tscn" id="16_build_spot"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.38, 0.55, 0.78, 1)
@@ -62,72 +64,146 @@ height = 2.4
 radial_segments = 6
 rings = 0
 
-[node name="Main" type="Node3D"]
+[node name="Main" type="Node3D" unique_id=1190873611]
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1107629719]
 environment = SubResource("Environment_main")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=1440732]
 transform = Transform3D(0.7682, 0, -0.6401, -0.5044, 0.6155, -0.6053, 0.394, 0.788, 0.4729, 0, 10, 0)
 light_energy = 1.1
 shadow_enabled = true
 
-[node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0.7399, -0.6727, 0, 0.6727, 0.7399, -2, 20, 22)
+[node name="Camera3D" type="Camera3D" parent="." unique_id=2093905404]
+transform = Transform3D(1, 0, 0, 0, 0.5944214, 0.80415386, 0, -0.80415386, 0.5944214, -2, 20, 22)
 fov = 60.0
 
-[node name="Level" type="Node3D" parent="."]
+[node name="Level" type="Node3D" parent="." unique_id=58941780]
 
-[node name="Ground" type="MeshInstance3D" parent="Level"]
+[node name="Ground" type="MeshInstance3D" parent="Level" unique_id=1472985511]
 mesh = SubResource("PlaneMesh_ground")
 
-[node name="Path3D" type="Path3D" parent="Level"]
+[node name="Path3D" type="Path3D" parent="Level" unique_id=1322644858]
 curve = SubResource("Curve3D_route")
 
-[node name="RoadVisual" type="MultiMeshInstance3D" parent="Level/Path3D"]
+[node name="RoadVisual" type="MultiMeshInstance3D" parent="Level/Path3D" unique_id=2106092308]
 script = ExtResource("1_road_visual")
 
-[node name="Base" type="Node3D" parent="Level"]
+[node name="Base" type="Node3D" parent="Level" unique_id=684710614]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
 
-[node name="Crystal" type="MeshInstance3D" parent="Level/Base"]
+[node name="Crystal" type="MeshInstance3D" parent="Level/Base" unique_id=2008510656]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
 mesh = SubResource("CylinderMesh_crystal")
 
-[node name="WaveManager" type="Node" parent="."]
+[node name="BuildSpots" type="Node3D" parent="Level"]
+
+[node name="BuildSpot1" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.5, 0, -7)
+
+[node name="BuildSpot2" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 0, -6.6)
+
+[node name="BuildSpot3" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.2, 0, -3)
+
+[node name="BuildSpot4" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -6)
+
+[node name="BuildSpot5" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -2.2)
+
+[node name="BuildSpot6" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 0, -2.4)
+
+[node name="BuildSpot7" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 0, 2.4)
+
+[node name="BuildSpot8" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.6, 0, 3.6)
+
+[node name="BuildSpot9" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6, 0, 4.6)
+
+[node name="BuildSpot10" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, 10.4)
+
+[node name="WaveManager" type="Node" parent="." unique_id=431208025]
 script = ExtResource("2_wave_manager")
 enemy_scene = ExtResource("4_enemy")
 waves = [ExtResource("7_wave_01"), ExtResource("8_wave_02"), ExtResource("9_wave_03"), ExtResource("10_wave_04"), ExtResource("11_wave_05"), ExtResource("12_wave_06"), ExtResource("13_wave_07"), ExtResource("14_wave_08")]
 path_node = NodePath("../Level/Path3D")
-auto_start = true
-first_wave_delay = 3.0
 
-[node name="Towers" type="Node3D" parent="."]
+[node name="BuildManager" type="Node" parent="."]
+script = ExtResource("15_build_manager")
+tower_scene = ExtResource("5_tower")
+camera_path = NodePath("../Camera3D")
+towers_parent_path = NodePath("../Towers")
 
-[node name="Tower1" parent="Towers" instance=ExtResource("5_tower")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 0, -4.5)
-data = ExtResource("6_tower_arrow")
+[node name="Towers" type="Node3D" parent="." unique_id=1983118443]
 
-[node name="Tower2" parent="Towers" instance=ExtResource("5_tower")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 0, 1.8)
-data = ExtResource("6_tower_arrow")
+[node name="Projectiles" type="Node3D" parent="." unique_id=341047104]
 
-[node name="Tower3" parent="Towers" instance=ExtResource("5_tower")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.2, 0, 6.4)
-data = ExtResource("6_tower_arrow")
+[node name="UI" type="CanvasLayer" parent="." unique_id=1653121643]
 
-[node name="Projectiles" type="Node3D" parent="."]
+[node name="HUD" type="Control" parent="UI"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_hud")
+tower_options = [ExtResource("6_tower_arrow")]
+build_manager_path = NodePath("../../BuildManager")
 
-[node name="UI" type="CanvasLayer" parent="."]
-
-[node name="DebugHud" type="Label" parent="UI"]
+[node name="Stats" type="VBoxContainer" parent="UI/HUD"]
+layout_mode = 1
+anchors_preset = 0
 offset_left = 20.0
 offset_top = 14.0
-offset_right = 720.0
-offset_bottom = 48.0
+offset_right = 340.0
+offset_bottom = 120.0
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="GoldLabel" type="Label" parent="UI/HUD/Stats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.88, 0.5, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 26
+text = "GOLD  0"
+
+[node name="LivesLabel" type="Label" parent="UI/HUD/Stats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.62, 0.6, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
+text = "LIVES  0"
+
+[node name="WaveLabel" type="Label" parent="UI/HUD/Stats"]
+layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 22
-text = "WAVE 0    GOLD 0    LIVES 0    ENEMIES 0"
-script = ExtResource("3_debug_hud")
+text = "WAVE  0"
+
+[node name="TowerBar" type="HBoxContainer" parent="UI/HUD"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -320.0
+offset_top = -88.0
+offset_right = 320.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+alignment = 1
+theme_override_constants/separation = 12
