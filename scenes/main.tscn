@@ -17,6 +17,7 @@
 [ext_resource type="Script" uid="uid://v5vi8hj3uv3o" path="res://scripts/build_manager.gd" id="15_build_manager"]
 [ext_resource type="PackedScene" path="res://scenes/build_spot.tscn" id="16_build_spot"]
 [ext_resource type="Script" path="res://scripts/result_screen.gd" id="17_result_screen"]
+[ext_resource type="Script" path="res://scripts/camera_rig.gd" id="18_camera_rig"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.38, 0.55, 0.78, 1)
@@ -78,6 +79,7 @@ shadow_enabled = true
 [node name="Camera3D" type="Camera3D" parent="." unique_id=2093905404]
 transform = Transform3D(1, 0, 0, 0, 0.7399, -0.6727, 0, 0.6727, 0.7399, -2, 20, 22)
 fov = 60.0
+script = ExtResource("18_camera_rig")
 
 [node name="Level" type="Node3D" parent="." unique_id=58941780]
 
