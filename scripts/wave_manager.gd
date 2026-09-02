@@ -6,8 +6,8 @@ extends Node
 ## ここは「データを読んで、待って、出す」だけに徹する。
 ## 波の流れは await でそのまま手続きとして書けるので、状態機械を持たない。
 
-signal wave_started(index: int)
-signal all_waves_cleared
+## 「湧き切ったか」「全滅したか」を見に行く間隔 (秒)。
+const POLL_INTERVAL := 0.1
 
 @export var enemy_scene: PackedScene
 ## WaveData の配列。型付き配列にしないのは WaveData の entries と同じ理由。
@@ -42,25 +42,30 @@ func start() -> void:
 	_run_all_waves()
 
 
+## 敗北したら（GameState.is_over()）どの待ちからも抜けて、以降は何も湧かせない。
 func _run_all_waves() -> void:
 	await _wait(first_wave_delay)
 
 	for i in waves.size():
+		if GameState.is_over():
+			return
 		var wave := waves[i] as WaveData
 		if wave == null:
 			continue
 
 		GameState.wave = i + 1
-		wave_started.emit(i + 1)
 
 		await _spawn_wave(wave)
 		await _wait_until_field_cleared()
+		if GameState.is_over():
+			return
 
 		if i < waves.size() - 1:
 			await _wait(wave.next_wave_delay)
 
 	_running = false
-	all_waves_cleared.emit()
+	# 最終波まで残らず片付いた = 勝利。
+	GameState.win()
 
 
 ## 波に含まれる全 WaveEntry を並行に走らせ、湧き切るまで待つ。
@@ -73,12 +78,16 @@ func _spawn_wave(wave: WaveData) -> void:
 		_spawn_entry(entry)
 
 	while _active_spawners > 0:
-		await get_tree().process_frame
+		if GameState.is_over():
+			return
+		await _wait(POLL_INTERVAL)
 
 
 func _spawn_entry(entry: WaveEntry) -> void:
 	await _wait(entry.start_delay)
 	for i in entry.count:
+		if GameState.is_over():
+			break
 		_spawn(entry.enemy_data)
 		if i < entry.count - 1:
 			await _wait(entry.spawn_interval)
@@ -98,14 +107,26 @@ func _spawn(data: EnemyData) -> void:
 
 func _wait_until_field_cleared() -> void:
 	while not get_tree().get_nodes_in_group(&"enemy").is_empty():
-		await get_tree().create_timer(0.25).timeout
+		if GameState.is_over():
+			return
+		await _wait(POLL_INTERVAL)
 
 
+## 待ち時間は SceneTree のタイマーではなく子ノードの Timer で計る。
+##
+## 理由は 2 つ:
+##   - process_mode を親から継承するので、ポーズ中は待ち時間も自然に止まる
+##     (SceneTree.create_timer は既定でポーズを無視して進んでしまう)
+##   - WaveManager が解放されるとタイマーも一緒に消えるので、リスタート後に
+##     「解放済みインスタンスを再開しようとした」エラーが出ない
 func _wait(seconds: float) -> void:
-	if seconds <= 0.0:
-		await get_tree().process_frame
-	else:
-		await get_tree().create_timer(seconds).timeout
+	var timer := Timer.new()
+	timer.one_shot = true
+	add_child(timer)
+	# Timer.start は 0 以下を受け付けないので下限を入れる。
+	timer.start(maxf(seconds, 0.001))
+	await timer.timeout
+	timer.queue_free()
 
 
 func _on_enemy_died(gold_value: int) -> void:

@@ -2,20 +2,21 @@
 
 [ext_resource type="Script" uid="uid://xmocfgxxw1wc" path="res://scripts/road_visual.gd" id="1_road_visual"]
 [ext_resource type="Script" uid="uid://b4ol4218moxot" path="res://scripts/wave_manager.gd" id="2_wave_manager"]
-[ext_resource type="Script" path="res://scripts/hud.gd" id="3_hud"]
+[ext_resource type="Script" uid="uid://b8lrcfllh0v23" path="res://scripts/hud.gd" id="3_hud"]
 [ext_resource type="PackedScene" path="res://scenes/enemy.tscn" id="4_enemy"]
 [ext_resource type="PackedScene" path="res://scenes/tower.tscn" id="5_tower"]
 [ext_resource type="Resource" path="res://resources/towers/tower_arrow.tres" id="6_tower_arrow"]
-[ext_resource type="Resource" path="res://resources/waves/wave_01.tres" id="7_wave_01"]
-[ext_resource type="Resource" path="res://resources/waves/wave_02.tres" id="8_wave_02"]
-[ext_resource type="Resource" path="res://resources/waves/wave_03.tres" id="9_wave_03"]
-[ext_resource type="Resource" path="res://resources/waves/wave_04.tres" id="10_wave_04"]
-[ext_resource type="Resource" path="res://resources/waves/wave_05.tres" id="11_wave_05"]
-[ext_resource type="Resource" path="res://resources/waves/wave_06.tres" id="12_wave_06"]
-[ext_resource type="Resource" path="res://resources/waves/wave_07.tres" id="13_wave_07"]
-[ext_resource type="Resource" path="res://resources/waves/wave_08.tres" id="14_wave_08"]
-[ext_resource type="Script" path="res://scripts/build_manager.gd" id="15_build_manager"]
+[ext_resource type="Resource" uid="uid://cs3falup4kcpj" path="res://resources/waves/wave_01.tres" id="7_wave_01"]
+[ext_resource type="Resource" uid="uid://cbrbq8aksjxmj" path="res://resources/waves/wave_02.tres" id="8_wave_02"]
+[ext_resource type="Resource" uid="uid://recoyhq5mace" path="res://resources/waves/wave_03.tres" id="9_wave_03"]
+[ext_resource type="Resource" uid="uid://bckivpa02ccnt" path="res://resources/waves/wave_04.tres" id="10_wave_04"]
+[ext_resource type="Resource" uid="uid://dfwyafdcgbvgu" path="res://resources/waves/wave_05.tres" id="11_wave_05"]
+[ext_resource type="Resource" uid="uid://blump5cd742in" path="res://resources/waves/wave_06.tres" id="12_wave_06"]
+[ext_resource type="Resource" uid="uid://l1g2og6qoolh" path="res://resources/waves/wave_07.tres" id="13_wave_07"]
+[ext_resource type="Resource" uid="uid://b1pcet5fw3m7r" path="res://resources/waves/wave_08.tres" id="14_wave_08"]
+[ext_resource type="Script" uid="uid://v5vi8hj3uv3o" path="res://scripts/build_manager.gd" id="15_build_manager"]
 [ext_resource type="PackedScene" path="res://scenes/build_spot.tscn" id="16_build_spot"]
+[ext_resource type="Script" path="res://scripts/result_screen.gd" id="17_result_screen"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.38, 0.55, 0.78, 1)
@@ -75,7 +76,7 @@ light_energy = 1.1
 shadow_enabled = true
 
 [node name="Camera3D" type="Camera3D" parent="." unique_id=2093905404]
-transform = Transform3D(1, 0, 0, 0, 0.5944214, 0.80415386, 0, -0.80415386, 0.5944214, -2, 20, 22)
+transform = Transform3D(1, 0, 0, 0, 0.7399, -0.6727, 0, 0.6727, 0.7399, -2, 20, 22)
 fov = 60.0
 
 [node name="Level" type="Node3D" parent="." unique_id=58941780]
@@ -96,36 +97,36 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
 mesh = SubResource("CylinderMesh_crystal")
 
-[node name="BuildSpots" type="Node3D" parent="Level"]
+[node name="BuildSpots" type="Node3D" parent="Level" unique_id=990039240]
 
-[node name="BuildSpot1" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+[node name="BuildSpot1" parent="Level/BuildSpots" unique_id=1469998101 instance=ExtResource("16_build_spot")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.5, 0, -7)
 
-[node name="BuildSpot2" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+[node name="BuildSpot2" parent="Level/BuildSpots" unique_id=1975691358 instance=ExtResource("16_build_spot")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 0, -6.6)
 
-[node name="BuildSpot3" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+[node name="BuildSpot3" parent="Level/BuildSpots" unique_id=829891970 instance=ExtResource("16_build_spot")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.2, 0, -3)
 
-[node name="BuildSpot4" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+[node name="BuildSpot4" parent="Level/BuildSpots" unique_id=1298926317 instance=ExtResource("16_build_spot")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -6)
 
-[node name="BuildSpot5" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+[node name="BuildSpot5" parent="Level/BuildSpots" unique_id=1229408803 instance=ExtResource("16_build_spot")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -2.2)
 
-[node name="BuildSpot6" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+[node name="BuildSpot6" parent="Level/BuildSpots" unique_id=207717049 instance=ExtResource("16_build_spot")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 0, -2.4)
 
-[node name="BuildSpot7" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+[node name="BuildSpot7" parent="Level/BuildSpots" unique_id=1902548934 instance=ExtResource("16_build_spot")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 0, 2.4)
 
-[node name="BuildSpot8" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+[node name="BuildSpot8" parent="Level/BuildSpots" unique_id=101691155 instance=ExtResource("16_build_spot")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.6, 0, 3.6)
 
-[node name="BuildSpot9" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+[node name="BuildSpot9" parent="Level/BuildSpots" unique_id=1251530182 instance=ExtResource("16_build_spot")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6, 0, 4.6)
 
-[node name="BuildSpot10" parent="Level/BuildSpots" instance=ExtResource("16_build_spot")]
+[node name="BuildSpot10" parent="Level/BuildSpots" unique_id=717296766 instance=ExtResource("16_build_spot")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, 10.4)
 
 [node name="WaveManager" type="Node" parent="." unique_id=431208025]
@@ -134,7 +135,7 @@ enemy_scene = ExtResource("4_enemy")
 waves = [ExtResource("7_wave_01"), ExtResource("8_wave_02"), ExtResource("9_wave_03"), ExtResource("10_wave_04"), ExtResource("11_wave_05"), ExtResource("12_wave_06"), ExtResource("13_wave_07"), ExtResource("14_wave_08")]
 path_node = NodePath("../Level/Path3D")
 
-[node name="BuildManager" type="Node" parent="."]
+[node name="BuildManager" type="Node" parent="." unique_id=1360803666]
 script = ExtResource("15_build_manager")
 tower_scene = ExtResource("5_tower")
 camera_path = NodePath("../Camera3D")
@@ -146,7 +147,8 @@ towers_parent_path = NodePath("../Towers")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=1653121643]
 
-[node name="HUD" type="Control" parent="UI"]
+[node name="HUD" type="Control" parent="UI" unique_id=127592024]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -157,9 +159,8 @@ script = ExtResource("3_hud")
 tower_options = [ExtResource("6_tower_arrow")]
 build_manager_path = NodePath("../../BuildManager")
 
-[node name="Stats" type="VBoxContainer" parent="UI/HUD"]
+[node name="Stats" type="VBoxContainer" parent="UI/HUD" unique_id=506892068]
 layout_mode = 1
-anchors_preset = 0
 offset_left = 20.0
 offset_top = 14.0
 offset_right = 340.0
@@ -167,7 +168,7 @@ offset_bottom = 120.0
 mouse_filter = 2
 theme_override_constants/separation = 2
 
-[node name="GoldLabel" type="Label" parent="UI/HUD/Stats"]
+[node name="GoldLabel" type="Label" parent="UI/HUD/Stats" unique_id=1135122192]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.88, 0.5, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
@@ -175,7 +176,7 @@ theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 26
 text = "GOLD  0"
 
-[node name="LivesLabel" type="Label" parent="UI/HUD/Stats"]
+[node name="LivesLabel" type="Label" parent="UI/HUD/Stats" unique_id=1839172753]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.62, 0.6, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
@@ -183,7 +184,7 @@ theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 22
 text = "LIVES  0"
 
-[node name="WaveLabel" type="Label" parent="UI/HUD/Stats"]
+[node name="WaveLabel" type="Label" parent="UI/HUD/Stats" unique_id=635216668]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
@@ -191,7 +192,7 @@ theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 22
 text = "WAVE  0"
 
-[node name="TowerBar" type="HBoxContainer" parent="UI/HUD"]
+[node name="TowerBar" type="HBoxContainer" parent="UI/HUD" unique_id=647932525]
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
@@ -205,5 +206,62 @@ offset_bottom = -24.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 2
-alignment = 1
 theme_override_constants/separation = 12
+alignment = 1
+
+[node name="ResultScreen" type="Control" parent="UI"]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("17_result_screen")
+
+[node name="Dim" type="ColorRect" parent="UI/ResultScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.04, 0.05, 0.08, 0.72)
+
+[node name="Panel" type="VBoxContainer" parent="UI/ResultScreen"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -240.0
+offset_top = -130.0
+offset_right = 240.0
+offset_bottom = 130.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="UI/ResultScreen/Panel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 64
+text = "VICTORY"
+horizontal_alignment = 1
+
+[node name="MessageLabel" type="Label" parent="UI/ResultScreen/Panel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.86, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 22
+text = "全 8 波を守りきった"
+horizontal_alignment = 1
+
+[node name="RestartButton" type="Button" parent="UI/ResultScreen/Panel"]
+custom_minimum_size = Vector2(220, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 22
+text = "もう一度あそぶ"
