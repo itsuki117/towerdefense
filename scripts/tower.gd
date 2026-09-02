@@ -79,7 +79,7 @@ func _shoot(target: Enemy) -> void:
 		return
 	_projectile_parent().add_child(projectile)
 	projectile.global_position = _muzzle.global_position
-	projectile.launch(target, data.damage, data.projectile_speed)
+	projectile.launch(target, data)
 
 
 ## 弾はタワーの子にしない（タワーが消えても飛んでいる弾が巻き込まれないように）。

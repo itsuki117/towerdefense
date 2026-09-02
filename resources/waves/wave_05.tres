@@ -3,6 +3,7 @@
 [ext_resource type="Script" uid="uid://d235kpin62xrm" path="res://scripts/data/wave_data.gd" id="1_wave_data"]
 [ext_resource type="Script" uid="uid://c2vj5eonwhxvc" path="res://scripts/data/wave_entry.gd" id="2_wave_entry"]
 [ext_resource type="Resource" path="res://resources/enemies/enemy_normal.tres" id="3_enemy_normal"]
+[ext_resource type="Resource" path="res://resources/enemies/enemy_fast.tres" id="4_enemy_fast"]
 
 [sub_resource type="Resource" id="Resource_entry_normal"]
 script = ExtResource("2_wave_entry")
@@ -10,6 +11,13 @@ enemy_data = ExtResource("3_enemy_normal")
 count = 12
 spawn_interval = 0.9
 
+[sub_resource type="Resource" id="Resource_entry_fast"]
+script = ExtResource("2_wave_entry")
+enemy_data = ExtResource("4_enemy_fast")
+count = 4
+spawn_interval = 0.8
+start_delay = 3.0
+
 [resource]
 script = ExtResource("1_wave_data")
-entries = [SubResource("Resource_entry_normal")]
+entries = [SubResource("Resource_entry_normal"), SubResource("Resource_entry_fast")]

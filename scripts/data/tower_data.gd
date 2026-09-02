@@ -4,7 +4,7 @@ extends Resource
 ##
 ## EnemyData と同じ方針で、タワーシーンは 1 つ・差分は .tres で表現する。
 
-## 追加効果。SLOW の適用はステップ6（2 種類目のタワー）で実装する。
+## 追加効果。命中時に Projectile が適用する。
 enum Effect { NONE, SLOW }
 
 @export var display_name: String = "Tower"
@@ -19,4 +19,8 @@ enum Effect { NONE, SLOW }
 ## 弾速 (m/秒)。
 @export var projectile_speed: float = 18.0
 @export var effect: Effect = Effect.NONE
+## effect が SLOW のときの速度倍率。0.5 なら敵の移動速度が半分になる。
+@export_range(0.05, 1.0, 0.05) var slow_factor: float = 0.5
+## 減速が続く秒数。effect が SLOW のときだけ意味を持つ。
+@export_range(0.1, 10.0, 0.1) var slow_duration: float = 1.5
 @export var body_color: Color = Color(0.85, 0.72, 0.35)

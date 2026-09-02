@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="TowerData" format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="1_tower_data"]
+
+[resource]
+script = ExtResource("1_tower_data")
+display_name = "フロストタワー"
+cost = 60
+damage = 1
+attack_range = 5.5
+fire_rate = 1.2
+projectile_speed = 22.0
+effect = 1
+slow_factor = 0.5
+slow_duration = 1.5
+body_color = Color(0.45, 0.72, 0.95, 1)

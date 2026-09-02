@@ -11,21 +11,24 @@ const MAX_LIFETIME := 4.0
 const TARGET_HEIGHT_OFFSET := 0.4
 
 var _target: Node3D = null
-var _damage: int = 0
+## 撃ったタワーの TowerData。ダメージも追加効果もここから読む。
+var _data: TowerData = null
 var _speed: float = 18.0
 var _life: float = MAX_LIFETIME
 
 
-func launch(target: Node3D, damage: int, speed: float) -> void:
+## 個別の数値ではなく TowerData ごと持たせる。効果が増えても引数を足さずに済み、
+## 弾は「撃った側のデータどおりに当たる」だけの役割で保てる。
+func launch(target: Node3D, tower_data: TowerData) -> void:
 	_target = target
-	_damage = damage
-	_speed = speed
+	_data = tower_data
+	_speed = tower_data.projectile_speed
 
 
 func _physics_process(delta: float) -> void:
 	_life -= delta
 	# ターゲットが先に倒れた場合は不発として消える。
-	if _life <= 0.0 or not is_instance_valid(_target):
+	if _life <= 0.0 or _data == null or not is_instance_valid(_target):
 		queue_free()
 		return
 
@@ -34,9 +37,17 @@ func _physics_process(delta: float) -> void:
 	var step := _speed * delta
 
 	if to_target.length() <= maxf(step, HIT_RADIUS):
-		if _target.has_method(&"take_damage"):
-			_target.take_damage(_damage)
+		_hit()
 		queue_free()
 		return
 
 	global_position += to_target.normalized() * step
+
+
+func _hit() -> void:
+	# 追加効果を先に入れる。take_damage で敵が撃破処理に入ると、
+	# その後の apply_slow は無視されるため。
+	if _data.effect == TowerData.Effect.SLOW and _target.has_method(&"apply_slow"):
+		_target.apply_slow(_data.slow_factor, _data.slow_duration)
+	if _target.has_method(&"take_damage"):
+		_target.take_damage(_data.damage)

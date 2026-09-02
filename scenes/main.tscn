@@ -18,6 +18,7 @@
 [ext_resource type="PackedScene" path="res://scenes/build_spot.tscn" id="16_build_spot"]
 [ext_resource type="Script" path="res://scripts/result_screen.gd" id="17_result_screen"]
 [ext_resource type="Script" path="res://scripts/camera_rig.gd" id="18_camera_rig"]
+[ext_resource type="Resource" path="res://resources/towers/tower_frost.tres" id="19_tower_frost"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_sky"]
 sky_top_color = Color(0.38, 0.55, 0.78, 1)
@@ -158,7 +159,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("3_hud")
-tower_options = [ExtResource("6_tower_arrow")]
+tower_options = [ExtResource("6_tower_arrow"), ExtResource("19_tower_frost")]
 build_manager_path = NodePath("../../BuildManager")
 
 [node name="Stats" type="VBoxContainer" parent="UI/HUD" unique_id=506892068]
