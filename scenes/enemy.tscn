@@ -1,0 +1,29 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemy.gd" id="1_enemy"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_body"]
+radius = 0.4
+height = 0.8
+radial_segments = 12
+rings = 6
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_hitbox"]
+radius = 0.5
+
+[node name="Enemy" type="PathFollow3D"]
+rotation_mode = 1
+loop = false
+script = ExtResource("1_enemy")
+
+[node name="Visual" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+mesh = SubResource("SphereMesh_body")
+
+[node name="Hitbox" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hitbox"]
+shape = SubResource("SphereShape3D_hitbox")

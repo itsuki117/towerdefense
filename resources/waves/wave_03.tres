@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WaveData" load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/wave_data.gd" id="1_wave_data"]
+[ext_resource type="Script" path="res://scripts/data/wave_entry.gd" id="2_wave_entry"]
+[ext_resource type="Resource" path="res://resources/enemies/enemy_normal.tres" id="3_enemy_normal"]
+
+[sub_resource type="Resource" id="Resource_entry_normal"]
+script = ExtResource("2_wave_entry")
+enemy_data = ExtResource("3_enemy_normal")
+count = 8
+spawn_interval = 1.0
+start_delay = 0.0
+
+[resource]
+script = ExtResource("1_wave_data")
+entries = [SubResource("Resource_entry_normal")]
+next_wave_delay = 5.5

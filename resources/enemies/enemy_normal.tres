@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy_data"]
+
+[resource]
+script = ExtResource("1_enemy_data")
+display_name = "スライム"
+max_hp = 12
+speed = 2.4
+gold_value = 6
+damage = 1
+body_color = Color(0.35, 0.75, 0.4, 1)
+body_scale = 1.0
