@@ -89,7 +89,12 @@ func _projectile_parent() -> Node:
 	return container if container != null else root
 
 
+## 専用モデルを持つタワーはモデル側のマテリアルをそのまま使うので何もしない。
+## プリミティブ表示のタワー（Turret/Head がある）だけ TowerData の色で塗る。
 func _apply_visual() -> void:
+	var head := get_node_or_null(^"Turret/Head") as MeshInstance3D
+	if head == null:
+		return
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = data.body_color
-	($Turret/Head as MeshInstance3D).set_surface_override_material(0, mat)
+	head.set_surface_override_material(0, mat)

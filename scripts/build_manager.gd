@@ -12,7 +12,8 @@ signal selection_changed(data: TowerData)
 const BUILD_SPOT_MASK := 4
 const RAY_LENGTH := 200.0
 
-@export var tower_scene: PackedScene
+## 専用シーンを持たないタワー用のシーン。TowerData.tower_scene があればそちらを使う。
+@export var default_tower_scene: PackedScene
 @export var camera_path: NodePath
 @export var towers_parent_path: NodePath
 
@@ -25,8 +26,8 @@ var _hovered: BuildSpot = null
 func _ready() -> void:
 	_camera = get_node_or_null(camera_path) as Camera3D
 	_towers_parent = get_node_or_null(towers_parent_path) as Node3D
-	if _camera == null or _towers_parent == null or tower_scene == null:
-		push_error("BuildManager: camera_path / towers_parent_path / tower_scene を設定してください")
+	if _camera == null or _towers_parent == null or default_tower_scene == null:
+		push_error("BuildManager: camera_path / towers_parent_path / default_tower_scene を設定してください")
 		set_physics_process(false)
 		set_process_unhandled_input(false)
 
@@ -108,7 +109,9 @@ func _try_build(spot: BuildSpot) -> void:
 	if not GameState.spend_gold(data.cost):
 		return
 
-	var tower := tower_scene.instantiate() as Tower
+	# モデルを持つタワーは自分専用のシーンを指定できる。
+	var scene := data.tower_scene if data.tower_scene != null else default_tower_scene
+	var tower := scene.instantiate() as Tower
 	if tower == null:
 		return
 	tower.data = data

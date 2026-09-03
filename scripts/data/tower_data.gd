@@ -8,6 +8,10 @@ extends Resource
 enum Effect { NONE, SLOW }
 
 @export var display_name: String = "Tower"
+## このタワー専用のシーン。Blender で作ったモデルを持つタワーはここで指定する。
+## null なら BuildManager の default_tower_scene（プリミティブ表示）が使われ、
+## 見た目は body_color だけで差を付ける。
+@export var tower_scene: PackedScene
 ## 設置コスト（ゴールド）。
 @export var cost: int = 50
 ## 1 発あたりのダメージ。

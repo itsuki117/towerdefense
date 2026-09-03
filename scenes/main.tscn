@@ -140,7 +140,7 @@ path_node = NodePath("../Level/Path3D")
 
 [node name="BuildManager" type="Node" parent="." unique_id=1360803666]
 script = ExtResource("15_build_manager")
-tower_scene = ExtResource("5_tower")
+default_tower_scene = ExtResource("5_tower")
 camera_path = NodePath("../Camera3D")
 towers_parent_path = NodePath("../Towers")
 
