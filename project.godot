@@ -25,6 +25,12 @@ window/size/viewport_width=1280
 window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 
+[gui]
+
+; 内蔵フォントに日本語グリフが無く、Web にはフォールバック先のシステムフォントも
+; 無いため、同梱フォントを既定にしないと UI が豆腐になる。
+theme/custom_font="res://assets/fonts/NotoSansJP-Regular.otf"
+
 [layer_names]
 
 3d_physics/layer_1="world"
