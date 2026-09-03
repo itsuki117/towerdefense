@@ -83,10 +83,12 @@ func _shoot(target: Enemy) -> void:
 
 
 ## 弾はタワーの子にしない（タワーが消えても飛んでいる弾が巻き込まれないように）。
+##
+## 置き場所はグループで探す。current_scene やツリーの形に依存させると、
+## シーンを別の形で読み込んだときに黙って壊れる。
 func _projectile_parent() -> Node:
-	var root := get_tree().current_scene
-	var container := root.get_node_or_null(^"Projectiles")
-	return container if container != null else root
+	var container := get_tree().get_first_node_in_group(&"projectile_container")
+	return container if container != null else get_parent()
 
 
 ## 専用モデルを持つタワーはモデル側のマテリアルをそのまま使うので何もしない。

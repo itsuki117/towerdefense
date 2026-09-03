@@ -1,0 +1,102 @@
+extends SceneTree
+## 画面を見ずに「ちゃんと組み上がって動くか」を確かめるスモークチェック。
+##
+##     godot --headless --path . --script tools/headless_check.gd
+##
+## タワーを数本建てたうえで一定フレーム走らせ、購入・撃破・減速までを確認する。
+##
+## 注意: このスクリプトの型注釈で BuildManager など「GameState を参照している
+## スクリプト」の型名を使わないこと。--script は Autoload 登録より前に
+## このスクリプトをコンパイルするため、巻き込まれた側がコンパイルに失敗し、
+## 対象ノードから script が外れてしまう。ノードは untyped で受けて call() で叩く。
+
+## タワーを建てるフレーム。
+const BUILD_FRAME := 5
+## 観測を終えるフレーム。60fps で 25 秒ぶん。
+const END_FRAME := 1500
+
+var _frames := 0
+var _game_state: Node = null
+var _slow_seen := false
+var _max_enemies := 0
+
+
+func _initialize() -> void:
+	print("========== RESOURCES ==========")
+	for path in [
+		"res://resources/towers/tower_arrow.tres",
+		"res://resources/towers/tower_frost.tres",
+		"res://resources/enemies/enemy_normal.tres",
+		"res://resources/enemies/enemy_fast.tres",
+		"res://scenes/tower_frost.tscn",
+		"res://assets/models/tower_slow_base.glb",
+		"res://assets/models/tower_slow_turret.glb",
+	]:
+		print("%-46s -> %s" % [path, "OK" if load(path) != null else "読み込み失敗"])
+
+	root.add_child(load("res://scenes/main.tscn").instantiate())
+
+
+func _process(_delta: float) -> bool:
+	_frames += 1
+
+	if _frames == BUILD_FRAME:
+		_game_state = root.get_node_or_null(^"GameState")
+		_report_buttons()
+		_build_towers()
+
+	if _frames > BUILD_FRAME:
+		_observe()
+
+	if _frames < END_FRAME:
+		return false
+
+	_report_result()
+	return true
+
+
+func _report_buttons() -> void:
+	print("\n========== HUD BUTTONS ==========")
+	var bar := root.get_node_or_null(^"Main/UI/HUD/TowerBar")
+	for child in bar.get_children():
+		print("button: text='%s' disabled=%s" % [child.text, child.disabled])
+
+
+func _build_towers() -> void:
+	print("\n========== BUILD ==========")
+	var manager := root.get_node_or_null(^"Main/BuildManager")
+	var plan := [
+		["Main/Level/BuildSpots/BuildSpot1", "res://resources/towers/tower_arrow.tres"],
+		["Main/Level/BuildSpots/BuildSpot2", "res://resources/towers/tower_frost.tres"],
+	]
+	for entry in plan:
+		var spot := root.get_node_or_null(NodePath(entry[0]))
+		var data := load(entry[1])
+		var before: int = _game_state.gold
+		manager.call(&"select_tower", data)
+		manager.call(&"_try_build", spot)
+		print("%s: gold %d -> %d, occupied=%s" % [
+			data.display_name, before, _game_state.gold, spot.call(&"is_occupied"),
+		])
+
+	var towers := root.get_node_or_null(^"Main/Towers")
+	print("建った本数 = ", towers.get_child_count())
+
+
+func _observe() -> void:
+	var enemies := get_nodes_in_group(&"enemy")
+	_max_enemies = maxi(_max_enemies, enemies.size())
+	for enemy in enemies:
+		if float(enemy.get("_slow_factor")) < 1.0:
+			_slow_seen = true
+
+
+func _report_result() -> void:
+	print("\n========== RESULT (%d フレーム後) ==========" % END_FRAME)
+	print("wave  = ", _game_state.wave)
+	print("gold  = ", _game_state.gold, "  (増えていれば敵を倒せている)")
+	print("lives = ", _game_state.lives)
+	print("同時に出た敵の最大数 = ", _max_enemies)
+	print("減速が掛かった敵を観測 = ", _slow_seen)
+	var projectiles := root.get_node_or_null(^"Main/Projectiles")
+	print("Projectiles ノード = ", projectiles)

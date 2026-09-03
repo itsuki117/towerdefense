@@ -14,7 +14,6 @@ spawn_interval = 0.95
 [sub_resource type="Resource" id="Resource_entry_fast"]
 script = ExtResource("2_wave_entry")
 enemy_data = ExtResource("4_enemy_fast")
-count = 3
 spawn_interval = 0.8
 start_delay = 3.0
 
