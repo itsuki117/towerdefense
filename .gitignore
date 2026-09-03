@@ -1,3 +1,6 @@
 # Godot 4+ specific ignores
 .godot/
 /android/
+
+# エクスポート成果物（itch.io へは build/web を zip して上げる）
+/build/
