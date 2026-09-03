@@ -106,10 +106,15 @@ Main (Node3D)
 - ルートの見た目（メッシュ帯 or デカール）×1
 - 拠点クリスタル ×1
 - 敵ブロブ（通常）×1 ＋ 高速版（色/サイズ替え）
-- タワー（土台＋砲身）… 1 ベースを色替えで 2 種
-  - フロストタワーは Blender 製モデルに差し替え済み（`assets/models/tower_slow_*.glb`）。
-    書き出しは `tools/export_tower_models.py` で再現できる。
-    アロータワーはまだプリミティブ表示のまま。
+- タワー（土台＋砲身）… 2 種とも Blender 製モデルに差し替え済み
+  - アロータワー: `assets/models/tower_basic_*.glb`（`tower_basic.blend` / `TowerBasic`）
+  - フロストタワー: `assets/models/tower_slow_*.glb`（`tower.blend` / `TowerSlow`）
+  - 書き出し方:
+    `blender -b <blend> --python tools/export_tower_models.py -- assets/models <接頭辞> <出力名>`
+  - 土台と砲塔を別 .glb にするのは、Godot 側で砲塔だけを旋回させるため。
+    砲身は Blender の +Y に向けて作ると回転補正が入らない（-Y なら書き出し時に 180 度回る）。
+  - `scenes/tower.tscn`（プリミティブ表示）は TowerData.tower_scene 未指定時の
+    フォールバックとして残してある。
 - 弾（球）×1
 - 設置可能マスのマーカー（リング/パッド）×1
 

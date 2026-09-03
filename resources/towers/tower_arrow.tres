@@ -1,10 +1,12 @@
-[gd_resource type="Resource" script_class="TowerData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="TowerData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="1_tower_data"]
+[ext_resource type="PackedScene" path="res://scenes/tower_arrow.tscn" id="2_tower_arrow_scene"]
 
 [resource]
 script = ExtResource("1_tower_data")
 display_name = "アロータワー"
+tower_scene = ExtResource("2_tower_arrow_scene")
 cost = 50
 damage = 4
 attack_range = 6.0

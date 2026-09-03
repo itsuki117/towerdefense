@@ -28,11 +28,24 @@ func _initialize() -> void:
 		"res://resources/towers/tower_frost.tres",
 		"res://resources/enemies/enemy_normal.tres",
 		"res://resources/enemies/enemy_fast.tres",
+		"res://scenes/tower_arrow.tscn",
 		"res://scenes/tower_frost.tscn",
+		"res://assets/models/tower_basic_base.glb",
+		"res://assets/models/tower_basic_turret.glb",
 		"res://assets/models/tower_slow_base.glb",
 		"res://assets/models/tower_slow_turret.glb",
 	]:
 		print("%-46s -> %s" % [path, "OK" if load(path) != null else "読み込み失敗"])
+
+	print("\n========== TOWER SCENES ==========")
+	for tower_path in [
+		"res://resources/towers/tower_arrow.tres",
+		"res://resources/towers/tower_frost.tres",
+	]:
+		var data := load(tower_path)
+		print("--- %s (tower_scene=%s) ---" % [data.display_name, data.tower_scene])
+		if data.tower_scene != null:
+			_dump(data.tower_scene.instantiate(), 0)
 
 	root.add_child(load("res://scenes/main.tscn").instantiate())
 
@@ -53,6 +66,18 @@ func _process(_delta: float) -> bool:
 
 	_report_result()
 	return true
+
+
+func _dump(node: Node, depth: int) -> void:
+	var extra := ""
+	if node is Node3D:
+		extra += " pos=%v" % (node as Node3D).position
+	if node is MeshInstance3D:
+		var mesh := (node as MeshInstance3D).mesh
+		extra += " surfaces=%d" % (mesh.get_surface_count() if mesh != null else -1)
+	print("  ".repeat(depth), "- ", node.name, " (", node.get_class(), ")", extra)
+	for child in node.get_children():
+		_dump(child, depth + 1)
 
 
 func _report_buttons() -> void:
