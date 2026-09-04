@@ -13,6 +13,7 @@ attack_range = 6.0
 fire_rate = 1.5
 projectile_speed = 22.0
 effect = 1
+shoot_sfx = &"shoot_frost"
 slow_factor = 0.35
 slow_duration = 2.5
 body_color = Color(0.45, 0.72, 0.95, 1)

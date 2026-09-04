@@ -215,6 +215,8 @@ towers_parent_path = NodePath("../Towers")
 
 [node name="Projectiles" type="Node3D" parent="." groups=["projectile_container"] unique_id=341047104]
 
+[node name="Effects" type="Node3D" parent="." groups=["effect_container"]]
+
 [node name="UI" type="CanvasLayer" parent="." unique_id=1653121643]
 
 [node name="HUD" type="Control" parent="UI" unique_id=127592024]

@@ -28,3 +28,5 @@ enum Effect { NONE, SLOW }
 ## 減速が続く秒数。effect が SLOW のときだけ意味を持つ。
 @export_range(0.1, 10.0, 0.1) var slow_duration: float = 1.5
 @export var body_color: Color = Color(0.85, 0.72, 0.35)
+## 発射音の名前。Sfx.LIBRARY のキーを指す。
+@export var shoot_sfx: StringName = &"shoot_arrow"

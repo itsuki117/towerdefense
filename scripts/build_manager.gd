@@ -11,6 +11,8 @@ signal selection_changed(data: TowerData)
 ## BuildSpot が乗っている物理レイヤー（3 番 = build_spot）。
 const BUILD_SPOT_MASK := 4
 const RAY_LENGTH := 200.0
+## 設置したときに舞う土煙の色。
+const DUST_COLOR := Color(0.58, 0.53, 0.44)
 
 ## 専用シーンを持たないタワー用のシーン。TowerData.tower_scene があればそちらを使う。
 @export var default_tower_scene: PackedScene
@@ -123,3 +125,5 @@ func _try_build(spot: BuildSpot) -> void:
 	_towers_parent.add_child(tower)
 	tower.global_position = spot.global_position
 	spot.place_tower(tower)
+	Burst.spawn(spot, spot.global_position + Vector3.UP * 0.15, Burst.Kind.DUST, DUST_COLOR)
+	Sfx.play(&"build", -4.0)

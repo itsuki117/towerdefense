@@ -21,10 +21,12 @@ func _ready() -> void:
 
 
 func _on_game_won() -> void:
+	Sfx.play(&"victory")
 	_show_result("VICTORY", "全 8 波を守りきった", COLOR_WIN)
 
 
 func _on_game_over() -> void:
+	Sfx.play(&"defeat")
 	_show_result("DEFEAT", "クリスタルが破壊された", COLOR_LOSE)
 
 

@@ -15,6 +15,13 @@ signal reached_end(damage: int)
 const SLOW_TINT := Color(0.45, 0.75, 1.0)
 const SLOW_TINT_STRENGTH := 0.55
 
+## 被弾したときに一瞬混ぜる色と、その持続時間。
+## 弾が当たったことを、HP バーを出さずに分からせるための表現。
+const FLASH_COLOR := Color(1.0, 0.96, 0.85)
+const FLASH_TIME := 0.13
+## 真っ白まで飛ばすと元の色が分からなくなるので、混ぜる上限を決める。
+const FLASH_STRENGTH := 0.8
+
 ## 体の大きさ（半径）。EnemyData.body_scale がこれに掛かる。
 const BODY_SIZE := Vector3(0.42, 0.36, 0.42)
 ## 跳ねる速さと、つぶれ具合。止まって見えないようにするための演出。
@@ -35,6 +42,8 @@ var _slow_factor: float = 1.0
 var _slow_remaining: float = 0.0
 ## 跳ねる演出用の時間。個体ごとにずらして、群れが同時に跳ねないようにする。
 var _hop_time: float = 0.0
+## 被弾フラッシュの残り時間。
+var _flash_remaining: float = 0.0
 
 
 func _ready() -> void:
@@ -56,6 +65,7 @@ func _physics_process(delta: float) -> void:
 		return
 	_update_slow(delta)
 	_update_hop(delta)
+	_update_flash(delta)
 	progress += data.speed * _slow_factor * delta
 	if progress_ratio >= 1.0:
 		_finish(true)
@@ -64,6 +74,9 @@ func _physics_process(delta: float) -> void:
 func take_damage(amount: int) -> void:
 	if _finished:
 		return
+	_flash_remaining = FLASH_TIME
+	_refresh_color()
+	Sfx.play(&"hit", -7.0)
 	_hp -= amount
 	if _hp <= 0:
 		_finish(false)
@@ -78,6 +91,14 @@ func apply_slow(factor: float, duration: float) -> void:
 		return
 	_slow_factor = clampf(factor, 0.05, 1.0)
 	_slow_remaining = maxf(_slow_remaining, duration)
+	_refresh_color()
+
+
+## 被弾フラッシュを時間で戻す。
+func _update_flash(delta: float) -> void:
+	if _flash_remaining <= 0.0:
+		return
+	_flash_remaining = maxf(_flash_remaining - delta, 0.0)
 	_refresh_color()
 
 
@@ -102,8 +123,12 @@ func _finish(reached_goal: bool) -> void:
 		queue_free()
 		return
 	if reached_goal:
+		Sfx.play(&"life_lost")
 		reached_end.emit(data.damage)
 	else:
+		# エフェクトは自分の子にしない。queue_free で巻き込まれてしまう。
+		Burst.spawn(self, _visual.global_position, Burst.Kind.DEATH, data.body_color)
+		Sfx.play(&"enemy_die", -4.0)
 		died.emit(data.gold_value)
 	queue_free()
 
@@ -133,7 +158,10 @@ func _apply_visual() -> void:
 func _refresh_color() -> void:
 	if _material == null or data == null:
 		return
+	var color := data.body_color
 	if _slow_factor < 1.0:
-		_material.albedo_color = data.body_color.lerp(SLOW_TINT, SLOW_TINT_STRENGTH)
-	else:
-		_material.albedo_color = data.body_color
+		color = color.lerp(SLOW_TINT, SLOW_TINT_STRENGTH)
+	# フラッシュは減速の色にも上書きで乗せる。当たった事実のほうを優先して見せる。
+	if _flash_remaining > 0.0:
+		color = color.lerp(FLASH_COLOR, _flash_remaining / FLASH_TIME * FLASH_STRENGTH)
+	_material.albedo_color = color

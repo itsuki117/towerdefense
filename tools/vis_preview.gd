@@ -39,6 +39,27 @@ func _ready() -> void:
 		await _click_tower(main)
 	if "wave" in OS.get_cmdline_user_args():
 		await _press_next_wave(main)
+	if "fx" in OS.get_cmdline_user_args():
+		_show_bursts(main)
+
+
+## エフェクトの見た目を確かめる。4 種類をタワーの手前に並べて撒き続ける。
+func _show_bursts(main: Node) -> void:
+	var towers := main.get_node(^"Towers")
+	if towers.get_child_count() == 0:
+		return
+	var tower: Node3D = towers.get_child(towers.get_child_count() - 1)
+	var camera: Camera3D = main.get_node(^"Camera3D")
+	camera.call(&"focus_on", tower)
+	var colors := [
+		Color(1.0, 0.85, 0.4), Color(0.35, 0.75, 0.4),
+		Color(0.85, 0.72, 0.35), Color(0.58, 0.53, 0.44),
+	]
+	while is_inside_tree():
+		await get_tree().create_timer(0.7).timeout
+		for i in 4:
+			var at := tower.global_position + Vector3(-2.7 + float(i) * 1.8, 0.5, 2.2)
+			Burst.spawn(main, at, i as Burst.Kind, colors[i])
 
 
 ## 「次の波へ」を押して、待ち時間を飛ばして波が始まるかを確かめる。

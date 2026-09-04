@@ -85,6 +85,7 @@ func _run_all_waves() -> void:
 			continue
 
 		GameState.wave = i + 1
+		Sfx.play(&"wave_start", -5.0)
 
 		await _spawn_wave(wave)
 		await _wait_until_field_cleared()

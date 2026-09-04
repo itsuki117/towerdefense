@@ -88,6 +88,11 @@ func _shoot(target: Enemy) -> void:
 	projectile.global_position = _muzzle.global_position
 	projectile.launch(target, data)
 
+	# 砲身の前方 = Muzzle の -Z。砲塔を look_at で回しているのでそのまま使える。
+	var forward := -_muzzle.global_transform.basis.z
+	Burst.spawn(self, _muzzle.global_position, Burst.Kind.MUZZLE, data.body_color, forward)
+	Sfx.play(data.shoot_sfx, -10.0)
+
 
 ## 弾はタワーの子にしない（タワーが消えても飛んでいる弾が巻き込まれないように）。
 ##

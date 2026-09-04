@@ -29,9 +29,20 @@ const SHARD_LAYOUT: Array = [
 	[3.1, 0.72, 0.3, 0.18],
 ]
 
+## ライフが減ったときの明かりの跳ね上がりと、赤へ寄せる色。
+const HURT_ENERGY := 2.8
+const HURT_COLOR := Color(1.0, 0.35, 0.3)
+## 脈が収まる速さ。
+const HURT_FADE := 2.2
+
 var _shards: Node3D = null
 var _shard_base_y: float = 0.0
 var _time: float = 0.0
+var _light: OmniLight3D = null
+var _light_energy: float = 0.0
+var _light_color := Color.WHITE
+## ライフが減った直後の脈の強さ (1.0 → 0.0)。
+var _hurt: float = 0.0
 
 
 func _ready() -> void:
@@ -45,14 +56,19 @@ func _ready() -> void:
 	add_child(_shards)
 	_build_shards()
 
-	var light := OmniLight3D.new()
-	light.name = "Glow"
-	light.position = Vector3(0.0, ground_y + 1.1, 0.0)
-	light.light_color = Color(0.6, 0.86, 1.0)
-	light.light_energy = 1.0
-	light.omni_range = 5.5
-	light.shadow_enabled = false
-	add_child(light)
+	_light = OmniLight3D.new()
+	_light.name = "Glow"
+	_light.position = Vector3(0.0, ground_y + 1.1, 0.0)
+	_light.light_color = Color(0.6, 0.86, 1.0)
+	_light.light_energy = 1.0
+	_light.omni_range = 5.5
+	_light.shadow_enabled = false
+	add_child(_light)
+	_light_color = _light.light_color
+	_light_energy = _light.light_energy
+
+	# 攻撃されたことを、拠点そのものの明かりで伝える。
+	GameState.lives_changed.connect(_on_lives_changed)
 
 
 func _process(delta: float) -> void:
@@ -61,6 +77,19 @@ func _process(delta: float) -> void:
 	_time += delta
 	_shards.rotation.y += spin_speed * delta
 	_shards.position.y = _shard_base_y + sin(_time * bob_speed) * bob_height
+	_update_hurt(delta)
+
+
+func _on_lives_changed(_value: int) -> void:
+	_hurt = 1.0
+
+
+func _update_hurt(delta: float) -> void:
+	if _light == null or _hurt <= 0.0:
+		return
+	_hurt = maxf(_hurt - delta * HURT_FADE, 0.0)
+	_light.light_energy = _light_energy + HURT_ENERGY * _hurt
+	_light.light_color = _light_color.lerp(HURT_COLOR, _hurt * 0.8)
 
 
 func _build_shards() -> void:
