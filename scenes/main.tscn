@@ -228,6 +228,7 @@ mouse_filter = 2
 script = ExtResource("3_hud")
 tower_options = [ExtResource("6_tower_arrow"), ExtResource("19_tower_frost")]
 build_manager_path = NodePath("../../BuildManager")
+wave_manager_path = NodePath("../../WaveManager")
 
 [node name="Stats" type="VBoxContainer" parent="UI/HUD" unique_id=506892068]
 layout_mode = 1
@@ -261,6 +262,22 @@ theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 22
 text = "WAVE  0"
+
+[node name="NextWaveButton" type="Button" parent="UI/HUD"]
+custom_minimum_size = Vector2(200, 52)
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -220.0
+offset_top = 16.0
+offset_right = -20.0
+offset_bottom = 68.0
+grow_horizontal = 0
+focus_mode = 0
+disabled = true
+theme_override_font_sizes/font_size = 20
+text = "ウェーブ進行中"
 
 [node name="TowerBar" type="HBoxContainer" parent="UI/HUD" unique_id=647932525]
 layout_mode = 1

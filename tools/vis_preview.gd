@@ -37,6 +37,23 @@ func _ready() -> void:
 	# 横取りまで含めて「本当にクリックで寄れるか」を確かめたいため。
 	if "focus" in OS.get_cmdline_user_args():
 		await _click_tower(main)
+	if "wave" in OS.get_cmdline_user_args():
+		await _press_next_wave(main)
+
+
+## 「次の波へ」を押して、待ち時間を飛ばして波が始まるかを確かめる。
+func _press_next_wave(main: Node) -> void:
+	var manager: WaveManager = main.get_node(^"WaveManager")
+	var button: Button = main.get_node(^"UI/HUD/NextWaveButton")
+	print("VisPreview: 待ち中=%s disabled=%s 文言=%s" % [
+		manager.is_waiting_for_next_wave(), button.disabled, button.text,
+	])
+	var before := GameState.wave
+	button.pressed.emit()
+	await get_tree().create_timer(0.3).timeout
+	print("VisPreview: 押した後 wave %d -> %d（待ち中=%s 文言=%s）" % [
+		before, GameState.wave, manager.is_waiting_for_next_wave(), button.text,
+	])
 
 
 func _click_tower(main: Node) -> void:
