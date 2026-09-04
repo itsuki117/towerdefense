@@ -173,8 +173,8 @@ await _wait(wave.next_wave_delay)  # 次の波まで待つ
 - **エンジン**: Godot 4.6（GDScript / GL Compatibility レンダラ）
 - **3D モデル**: Blender で作成し、glTF (`.glb`) で書き出して取り込み
 - **物理**: Jolt Physics（射程判定と設置マスのレイキャストに `Area3D` を使用）
-- **効果音**: 標準ライブラリだけの Python スクリプトで合成（[tools/make_sfx.py](tools/make_sfx.py)）。
-  音源を外から持ってこないので、再配布ライセンスの管理が要らない
+- **効果音**: 暫定。標準ライブラリだけの Python スクリプトで合成している
+  （[tools/make_sfx.py](tools/make_sfx.py)）。外部素材への差し替え予定
 
 ## 起動方法
 
