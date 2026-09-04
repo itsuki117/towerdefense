@@ -5,6 +5,12 @@ extends Node3D
 ## ターゲットは「ゴールに一番近い敵」＝ progress_ratio が最大の敵。
 ## 一番近い敵を狙うより漏れが減り、タワーディフェンスの定石でもある。
 
+## クリック判定を乗せる物理レイヤー（4 番 = tower）。カメラがこれを撃つ。
+const CLICK_LAYER := 8
+## クリック判定の大きさ。タワーの土台から砲塔までをざっくり覆う。
+const CLICK_RADIUS := 0.75
+const CLICK_HEIGHT := 1.7
+
 @export var data: TowerData
 @export var projectile_scene: PackedScene
 
@@ -34,6 +40,7 @@ func _ready() -> void:
 	_fire_timer.start()
 
 	_apply_visual()
+	_add_click_area()
 
 
 func _physics_process(_delta: float) -> void:
@@ -89,6 +96,29 @@ func _shoot(target: Enemy) -> void:
 func _projectile_parent() -> Node:
 	var container := get_tree().get_first_node_in_group(&"projectile_container")
 	return container if container != null else get_parent()
+
+
+## カメラが「どのタワーがクリックされたか」を知るための当たり判定。
+##
+## タワーのシーンは 3 つあるので、それぞれに置くより実行時に足すほうが
+## 形も大きさも 1 か所で決まる。当たるのはカメラのレイだけ
+## （collision_mask = 0 なので、このエリア自身は何も検知しない）。
+func _add_click_area() -> void:
+	var shape := CylinderShape3D.new()
+	shape.radius = CLICK_RADIUS
+	shape.height = CLICK_HEIGHT
+
+	var collision := CollisionShape3D.new()
+	collision.shape = shape
+	collision.position.y = CLICK_HEIGHT * 0.5
+
+	var area := Area3D.new()
+	area.name = "ClickArea"
+	area.collision_layer = CLICK_LAYER
+	area.collision_mask = 0
+	area.monitoring = false
+	area.add_child(collision)
+	add_child(area)
 
 
 ## 専用モデルを持つタワーはモデル側のマテリアルをそのまま使うので何もしない。

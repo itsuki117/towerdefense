@@ -36,6 +36,7 @@ theme/custom_font="res://assets/fonts/NotoSansJP-Regular.otf"
 3d_physics/layer_1="world"
 3d_physics/layer_2="enemy"
 3d_physics/layer_3="build_spot"
+3d_physics/layer_4="tower"
 
 [physics]
 

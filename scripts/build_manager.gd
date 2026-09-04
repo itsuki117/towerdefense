@@ -57,12 +57,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	var button_event := event as InputEventMouseButton
 	if button_event != null and button_event.pressed:
 		if button_event.button_index == MOUSE_BUTTON_LEFT:
-			if _hovered != null:
+			# 埋まったマスのクリックはここで握り潰さない。
+			# タワーに寄るカメラ側が受け取れなくなるため。
+			if _hovered != null and not _hovered.is_occupied():
 				_try_build(_hovered)
 				get_viewport().set_input_as_handled()
 		elif button_event.button_index == MOUSE_BUTTON_RIGHT:
-			clear_selection()
-			get_viewport().set_input_as_handled()
+			# 選んでいるものが無いときは握り潰さない。
+			# 「右クリックで 1 つ戻る」をカメラの寄りにも使えるようにするため。
+			if _selected != null:
+				clear_selection()
+				get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"ui_cancel"):
 		clear_selection()
 
