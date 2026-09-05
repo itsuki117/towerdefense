@@ -32,6 +32,9 @@ var _game_state: Node = null
 var _manager: Node = null
 var _spots: Array = []
 var _built := 0
+## ステージを守り切ったか。次のステージがある場合は勝敗が付かないので、
+## signal を拾わないとインターバルの前で回り続けてしまう。
+var _stage_cleared := false
 var _elapsed := 0.0
 var _next_build_check := 0.0
 var _peak_enemies := 0
@@ -53,10 +56,9 @@ func _initialize() -> void:
 
 	_game_state = root.get_node_or_null(^"GameState")
 	_manager = root.get_node_or_null(^"Main/BuildManager")
-	var holder := root.get_node_or_null(^"Main/Level/BuildSpots")
-	_spots = holder.get_children()
+	_game_state.stage_cleared.connect(_on_stage_cleared)
 
-	print("=== SIM START (towers<=%d, spots=%d) ===" % [_max_towers, _spots.size()])
+	print("=== SIM START (towers<=%d, stage=%d) ===" % [_max_towers, _game_state.stage + 1])
 
 
 func _process(delta: float) -> bool:
@@ -68,6 +70,9 @@ func _process(delta: float) -> bool:
 		_next_build_check = _elapsed + BUILD_INTERVAL
 		_try_build_one()
 
+	if _stage_cleared:
+		_report("STAGE CLEAR")
+		return true
 	var result: int = _game_state.result
 	if result != 0:
 		_report("WON" if result == 1 else "LOST")
@@ -78,10 +83,23 @@ func _process(delta: float) -> bool:
 	return false
 
 
+func _on_stage_cleared(_stage_number: int, _reward: int) -> void:
+	_stage_cleared = true
+
+
+## 設置マスはステージのデータから毎回作られるので、シーンを読んだ直後ではなく
+## 使う直前に集める。_initialize の時点では、まだ並んでいないことがある。
+func _collect_spots() -> void:
+	var holder := root.get_node_or_null(^"Main/Level/BuildSpots")
+	_spots = holder.get_children() if holder != null else []
+
+
 ## 空きマスがあり、買えるなら 1 本建てる。
 func _try_build_one() -> void:
 	if _built >= _max_towers:
 		return
+	if _spots.is_empty():
+		_collect_spots()
 	var use_frost := _frost_every > 0 and _built % _frost_every == _frost_every - 1
 	var data := load(FROST if use_frost else ARROW)
 	if _game_state.gold < data.cost:
@@ -99,9 +117,19 @@ func _try_build_one() -> void:
 
 
 func _report(outcome: String) -> void:
+	var stage = _game_state.current_stage()
 	print("=== SIM RESULT: %s ===" % outcome)
-	print("到達ウェーブ = %d / 8" % _game_state.wave)
-	print("残りライフ   = %d / 20" % _game_state.lives)
+	print("ステージ     = %d / %d (%s)" % [
+		_game_state.stage + 1, _game_state.stage_count(),
+		stage.display_name if stage != null else "?",
+	])
+	print("到達ウェーブ = %d / %d" % [
+		_game_state.wave, stage.waves.size() if stage != null else 0,
+	])
+	print("残りライフ   = %d / %d" % [
+		_game_state.lives, stage.lives if stage != null else 0,
+	])
+	print("設置マス数   = %d" % _spots.size())
 	print("建てた本数   = %d" % _built)
 	print("所持ゴールド = %d" % _game_state.gold)
 	print("同時に出た敵の最大数 = %d" % _peak_enemies)

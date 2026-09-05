@@ -13,7 +13,9 @@ signal countdown_changed(seconds_left: float)
 const POLL_INTERVAL := 0.1
 
 @export var enemy_scene: PackedScene
-## WaveData の配列。型付き配列にしないのは WaveData の entries と同じ理由。
+## WaveData の配列。**空ならステージのデータ (StageData.waves) を使う。**
+## シーンに直接並べるのはツールから差し替えたいときだけ。
+## 型付き配列にしないのは WaveData の entries と同じ理由。
 @export var waves: Array = []
 @export var path_node: NodePath
 @export var auto_start: bool = true
@@ -39,6 +41,13 @@ func _ready() -> void:
 		return
 	if enemy_scene == null:
 		push_error("WaveManager: enemy_scene が未設定です")
+		return
+	if waves.is_empty():
+		var stage := GameState.current_stage()
+		if stage != null:
+			waves = stage.waves
+	if waves.is_empty():
+		push_error("WaveManager: 走らせるウェーブがありません")
 		return
 	if auto_start:
 		start()
@@ -96,8 +105,9 @@ func _run_all_waves() -> void:
 			await _wait_for_next_wave(wave.next_wave_delay)
 
 	_running = false
-	# 最終波まで残らず片付いた = 勝利。
-	GameState.win()
+	# 最終波まで残らず片付いた = このステージはクリア。
+	# 最後のステージなら勝利、まだ先があるならインターバルへ進む。
+	GameState.clear_stage()
 
 
 ## 次の波まで待つ。プレイヤーが呼んだら残り時間を待たずに抜ける。

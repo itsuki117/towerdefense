@@ -4,19 +4,13 @@
 [ext_resource type="Script" path="res://scripts/terrain.gd" id="20_terrain"]
 [ext_resource type="Script" path="res://scripts/prop_scatter.gd" id="21_prop_scatter"]
 [ext_resource type="Script" path="res://scripts/base_crystal.gd" id="22_base_crystal"]
+[ext_resource type="Script" path="res://scripts/level.gd" id="23_level"]
+[ext_resource type="Script" path="res://scripts/interval_screen.gd" id="24_interval_screen"]
 [ext_resource type="Script" uid="uid://b4ol4218moxot" path="res://scripts/wave_manager.gd" id="2_wave_manager"]
 [ext_resource type="Script" uid="uid://b8lrcfllh0v23" path="res://scripts/hud.gd" id="3_hud"]
 [ext_resource type="PackedScene" path="res://scenes/enemy.tscn" id="4_enemy"]
 [ext_resource type="PackedScene" path="res://scenes/tower.tscn" id="5_tower"]
 [ext_resource type="Resource" path="res://resources/towers/tower_arrow.tres" id="6_tower_arrow"]
-[ext_resource type="Resource" uid="uid://cs3falup4kcpj" path="res://resources/waves/wave_01.tres" id="7_wave_01"]
-[ext_resource type="Resource" uid="uid://cbrbq8aksjxmj" path="res://resources/waves/wave_02.tres" id="8_wave_02"]
-[ext_resource type="Resource" uid="uid://recoyhq5mace" path="res://resources/waves/wave_03.tres" id="9_wave_03"]
-[ext_resource type="Resource" uid="uid://bckivpa02ccnt" path="res://resources/waves/wave_04.tres" id="10_wave_04"]
-[ext_resource type="Resource" uid="uid://dfwyafdcgbvgu" path="res://resources/waves/wave_05.tres" id="11_wave_05"]
-[ext_resource type="Resource" uid="uid://blump5cd742in" path="res://resources/waves/wave_06.tres" id="12_wave_06"]
-[ext_resource type="Resource" uid="uid://l1g2og6qoolh" path="res://resources/waves/wave_07.tres" id="13_wave_07"]
-[ext_resource type="Resource" uid="uid://b1pcet5fw3m7r" path="res://resources/waves/wave_08.tres" id="14_wave_08"]
 [ext_resource type="Script" uid="uid://v5vi8hj3uv3o" path="res://scripts/build_manager.gd" id="15_build_manager"]
 [ext_resource type="PackedScene" path="res://scenes/build_spot.tscn" id="16_build_spot"]
 [ext_resource type="Script" path="res://scripts/result_screen.gd" id="17_result_screen"]
@@ -59,13 +53,6 @@ adjustment_enabled = true
 adjustment_contrast = 1.1
 adjustment_saturation = 1.14
 
-[sub_resource type="Curve3D" id="Curve3D_route"]
-_data = {
-"points": PackedVector3Array(0, 0, 0, 0, 0, 0, -11, 0, -9, 0, 0, 0, 0, 0, 0, -3, 0, -9, 0, 0, 0, 0, 0, 0, -3, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 8),
-"tilts": PackedFloat32Array(0, 0, 0, 0, 0, 0)
-}
-point_count = 6
-
 [node name="Main" type="Node3D" unique_id=1190873611]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1107629719]
@@ -97,51 +84,21 @@ script = ExtResource("18_camera_rig")
 look_at_target = Vector3(-1, 0, 1)
 
 [node name="Level" type="Node3D" parent="." unique_id=58941780]
+script = ExtResource("23_level")
+build_spot_scene = ExtResource("16_build_spot")
 
 [node name="Ground" type="MeshInstance3D" parent="Level" unique_id=1472985511]
 script = ExtResource("20_terrain")
 
 [node name="Path3D" type="Path3D" parent="Level" unique_id=1322644858]
-curve = SubResource("Curve3D_route")
 
 [node name="RoadVisual" type="MeshInstance3D" parent="Level/Path3D" unique_id=2106092308]
 script = ExtResource("1_road_visual")
 
 [node name="Base" type="Node3D" parent="Level" unique_id=684710614]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 8)
 script = ExtResource("22_base_crystal")
 
 [node name="BuildSpots" type="Node3D" parent="Level" unique_id=990039240]
-
-[node name="BuildSpot1" parent="Level/BuildSpots" unique_id=1469998101 instance=ExtResource("16_build_spot")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.5, 0, -7)
-
-[node name="BuildSpot2" parent="Level/BuildSpots" unique_id=1975691358 instance=ExtResource("16_build_spot")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.5, 0, -6.6)
-
-[node name="BuildSpot3" parent="Level/BuildSpots" unique_id=829891970 instance=ExtResource("16_build_spot")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.2, 0, -3)
-
-[node name="BuildSpot4" parent="Level/BuildSpots" unique_id=1298926317 instance=ExtResource("16_build_spot")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -6)
-
-[node name="BuildSpot5" parent="Level/BuildSpots" unique_id=1229408803 instance=ExtResource("16_build_spot")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0, -2.2)
-
-[node name="BuildSpot6" parent="Level/BuildSpots" unique_id=207717049 instance=ExtResource("16_build_spot")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 0, -2.4)
-
-[node name="BuildSpot7" parent="Level/BuildSpots" unique_id=1902548934 instance=ExtResource("16_build_spot")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.2, 0, 2.4)
-
-[node name="BuildSpot8" parent="Level/BuildSpots" unique_id=101691155 instance=ExtResource("16_build_spot")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8.6, 0, 3.6)
-
-[node name="BuildSpot9" parent="Level/BuildSpots" unique_id=1251530182 instance=ExtResource("16_build_spot")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.6, 0, 4.6)
-
-[node name="BuildSpot10" parent="Level/BuildSpots" unique_id=717296766 instance=ExtResource("16_build_spot")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.4, 0, 10.4)
 
 [node name="Props" type="Node3D" parent="Level"]
 
@@ -202,7 +159,6 @@ field_margin = 2.5
 [node name="WaveManager" type="Node" parent="." unique_id=431208025]
 script = ExtResource("2_wave_manager")
 enemy_scene = ExtResource("4_enemy")
-waves = [ExtResource("7_wave_01"), ExtResource("8_wave_02"), ExtResource("9_wave_03"), ExtResource("10_wave_04"), ExtResource("11_wave_05"), ExtResource("12_wave_06"), ExtResource("13_wave_07"), ExtResource("14_wave_08")]
 path_node = NodePath("../Level/Path3D")
 
 [node name="BuildManager" type="Node" parent="." unique_id=1360803666]
@@ -297,6 +253,70 @@ grow_vertical = 0
 mouse_filter = 2
 theme_override_constants/separation = 12
 alignment = 1
+
+[node name="IntervalScreen" type="Control" parent="UI"]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("24_interval_screen")
+
+[node name="Dim" type="ColorRect" parent="UI/IntervalScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.07, 0.1, 0.66)
+
+[node name="Panel" type="VBoxContainer" parent="UI/IntervalScreen"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -150.0
+offset_right = 260.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="UI/IntervalScreen/Panel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.93, 1, 1)
+theme_override_font_sizes/font_size = 46
+text = "STAGE CLEAR"
+horizontal_alignment = 1
+
+[node name="MessageLabel" type="Label" parent="UI/IntervalScreen/Panel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.88, 0.9, 0.94, 1)
+theme_override_font_sizes/font_size = 22
+text = "報酬"
+horizontal_alignment = 1
+
+[node name="HintLabel" type="Label" parent="UI/IntervalScreen/Panel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.66, 0.72, 1)
+theme_override_font_sizes/font_size = 17
+text = "強化はここに入る（準備中）"
+horizontal_alignment = 1
+
+[node name="NextButton" type="Button" parent="UI/IntervalScreen/Panel"]
+custom_minimum_size = Vector2(260, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 22
+text = "次のステージへ"
 
 [node name="ResultScreen" type="Control" parent="UI"]
 process_mode = 3

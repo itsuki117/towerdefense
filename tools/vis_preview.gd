@@ -41,6 +41,44 @@ func _ready() -> void:
 		await _press_next_wave(main)
 	if "fx" in OS.get_cmdline_user_args():
 		_show_bursts(main)
+	_report_stage(main)
+	# `-- stage3` のように番号を付けると、そのステージに着くまで進める。
+	var target := _target_stage()
+	if target > GameState.stage_number():
+		await _advance_stage(main)
+
+
+## 引数から目的のステージ番号を読む。`stage` だけなら 2 面目。
+func _target_stage() -> int:
+	for arg in OS.get_cmdline_user_args():
+		if not arg.begins_with("stage"):
+			continue
+		var number := arg.substr(5)
+		return int(number) if number.is_valid_int() else 2
+	return 0
+
+
+## 今のステージで何が組み上がったかを出す。道と設置マスがステージごとに
+## 作り直されているかは、節とマスの数を見れば分かる。
+func _report_stage(main: Node) -> void:
+	var path: Path3D = main.get_node(^"Level/Path3D")
+	var spots := main.get_node(^"Level/BuildSpots")
+	print("VisPreview: ステージ %d「%s」節=%d マス=%d 所持=%d ライフ=%d" % [
+		GameState.stage_number(), GameState.current_stage().display_name,
+		path.curve.point_count, spots.get_child_count(), GameState.gold, GameState.lives,
+	])
+
+
+## ステージをクリアした扱いにして、インターバルから次のステージへ進める。
+func _advance_stage(main: Node) -> void:
+	await get_tree().create_timer(0.5).timeout
+	GameState.clear_stage()
+	await get_tree().process_frame
+	var screen: Control = main.get_node(^"UI/IntervalScreen")
+	print("VisPreview: インターバル 表示=%s ポーズ=%s 所持=%d" % [
+		screen.visible, get_tree().paused, GameState.gold,
+	])
+	screen.get_node(^"Panel/NextButton").pressed.emit()
 
 
 ## エフェクトの見た目を確かめる。4 種類をタワーの手前に並べて撒き続ける。

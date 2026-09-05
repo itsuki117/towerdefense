@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="StageData" load_steps=7 format=3]
+
+
+[ext_resource type="Script" path="res://scripts/data/stage_data.gd" id="1_stage_data"]
+[ext_resource type="Resource" path="res://resources/stages/stage_02_route.tres" id="2_route"]
+[ext_resource type="Resource" path="res://resources/waves/wave_05.tres" id="3_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_06.tres" id="4_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_07.tres" id="5_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_08.tres" id="6_wave"]
+
+[resource]
+script = ExtResource("1_stage_data")
+display_name = "ステージ 2 — 回り込む道"
+route = ExtResource("2_route")
+build_spots = PackedVector3Array(-9, 0, -6.5, -6, 0, -6.5, -0.5, 0, -6, -6.2, 0, -2.6, 2, 0, -5, 5.5, 0, -5, 5, 0, 1, 10.4, 0, 2, 2.8, 0, 3.4, -3.5, 0, 6, 3.5, 0, 8.6, 8, 0, 9)
+waves = [ExtResource("3_wave"), ExtResource("4_wave"), ExtResource("5_wave"), ExtResource("6_wave")]
+lives = 20
+clear_reward = 110

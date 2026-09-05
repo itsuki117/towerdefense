@@ -22,7 +22,7 @@ func _ready() -> void:
 
 func _on_game_won() -> void:
 	Sfx.play(&"victory")
-	_show_result("VICTORY", "全 8 波を守りきった", COLOR_WIN)
+	_show_result("VICTORY", "全 %d ステージを守りきった" % GameState.stage_count(), COLOR_WIN)
 
 
 func _on_game_over() -> void:
@@ -42,6 +42,7 @@ func _show_result(title: String, message: String, color: Color) -> void:
 func _on_restart_pressed() -> void:
 	get_tree().paused = false
 	# GameState は Autoload でシーンをまたいで生き残るので、明示的に戻す。
-	GameState.reset()
+	# 強化もゴールドもステージ番号も失う（1 周回のみ＝セーブは持たない）。
+	GameState.reset_run()
 	# 自分自身を含むシーンを作り直すので、フレーム境界まで遅らせる。
 	get_tree().call_deferred(&"reload_current_scene")
