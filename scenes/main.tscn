@@ -90,9 +90,7 @@ build_spot_scene = ExtResource("16_build_spot")
 [node name="Ground" type="MeshInstance3D" parent="Level" unique_id=1472985511]
 script = ExtResource("20_terrain")
 
-[node name="Path3D" type="Path3D" parent="Level" unique_id=1322644858]
-
-[node name="RoadVisual" type="MeshInstance3D" parent="Level/Path3D" unique_id=2106092308]
+[node name="RoadVisual" type="MeshInstance3D" parent="Level" unique_id=2106092308]
 script = ExtResource("1_road_visual")
 
 [node name="Base" type="Node3D" parent="Level" unique_id=684710614]
@@ -159,7 +157,6 @@ field_margin = 2.5
 [node name="WaveManager" type="Node" parent="." unique_id=431208025]
 script = ExtResource("2_wave_manager")
 enemy_scene = ExtResource("4_enemy")
-path_node = NodePath("../Level/Path3D")
 
 [node name="BuildManager" type="Node" parent="." unique_id=1360803666]
 script = ExtResource("15_build_manager")
@@ -168,6 +165,8 @@ camera_path = NodePath("../Camera3D")
 towers_parent_path = NodePath("../Towers")
 
 [node name="Towers" type="Node3D" parent="." unique_id=1983118443]
+
+[node name="Enemies" type="Node3D" parent="." groups=["enemy_container"]]
 
 [node name="Projectiles" type="Node3D" parent="." groups=["projectile_container"] unique_id=341047104]
 

@@ -23,12 +23,14 @@ func _ready() -> void:
 
 	GameState.gold = 9999
 	var manager: BuildManager = main.get_node(^"BuildManager")
-	for spot_name in PLAN:
+	# A* の確認は「何も建っていない状態」から始めたいので、既定の設置は飛ばす。
+	var plan: Dictionary = {} if "astar" in OS.get_cmdline_user_args() else PLAN
+	for spot_name in plan:
 		var spot := main.get_node_or_null(NodePath("Level/BuildSpots/%s" % spot_name)) as BuildSpot
 		if spot == null:
 			push_warning("VisPreview: マスが見つからない: %s" % spot_name)
 			continue
-		manager.select_tower(load(PLAN[spot_name]))
+		manager.select_tower(load(plan[spot_name]))
 		manager._try_build(spot)
 	manager.clear_selection()
 
@@ -41,11 +43,48 @@ func _ready() -> void:
 		await _press_next_wave(main)
 	if "fx" in OS.get_cmdline_user_args():
 		_show_bursts(main)
+	if "astar" in OS.get_cmdline_user_args():
+		_check_astar(main)
+
 	_report_stage(main)
 	# `-- stage3` のように番号を付けると、そのステージに着くまで進める。
 	var target := _target_stage()
 	if target > GameState.stage_number():
 		await _advance_stage(main)
+
+
+## 分かれ道で A* が枝を選び直すかを確かめる。
+##
+## ステージ 3 は 2 本の枝が同じ長さなので、何も建っていなければどちらでもよい。
+## 片方だけをタワーで守ると、そちらのコストが上がってもう片方が選ばれるはず。
+func _check_astar(main: Node) -> void:
+	var level: Level = main.get_node(^"Level")
+	var graph := level.graph
+	if graph == null or graph.route.edges.size() < 8:
+		print("VisPreview: 分岐のあるステージではありません")
+		return
+	const FORK := 2
+	print("VisPreview: 分岐点 %d から次 = %d（枝A=3 / 枝B=5）コスト A=%.1f B=%.1f" % [
+		FORK, graph.next_node(FORK),
+		graph.edge_cost(graph.edge_between(2, 3)) + graph.edge_cost(graph.edge_between(3, 4)),
+		graph.edge_cost(graph.edge_between(2, 5)) + graph.edge_cost(graph.edge_between(5, 4)),
+	])
+
+	var manager: BuildManager = main.get_node(^"BuildManager")
+	var data := load("res://resources/towers/tower_arrow.tres")
+	for spot_name in ["BuildSpot5", "BuildSpot6"]:
+		var spot := main.get_node_or_null(NodePath("Level/BuildSpots/%s" % spot_name)) as BuildSpot
+		if spot == null:
+			continue
+		manager.select_tower(data)
+		manager._try_build(spot)
+	manager.clear_selection()
+
+	print("VisPreview: 枝Aを守った後の次 = %d、コスト A=%.1f B=%.1f" % [
+		graph.next_node(FORK),
+		graph.edge_cost(graph.edge_between(2, 3)) + graph.edge_cost(graph.edge_between(3, 4)),
+		graph.edge_cost(graph.edge_between(2, 5)) + graph.edge_cost(graph.edge_between(5, 4)),
+	])
 
 
 ## 引数から目的のステージ番号を読む。`stage` だけなら 2 面目。
@@ -61,11 +100,12 @@ func _target_stage() -> int:
 ## 今のステージで何が組み上がったかを出す。道と設置マスがステージごとに
 ## 作り直されているかは、節とマスの数を見れば分かる。
 func _report_stage(main: Node) -> void:
-	var path: Path3D = main.get_node(^"Level/Path3D")
+	var level: Level = main.get_node(^"Level")
 	var spots := main.get_node(^"Level/BuildSpots")
-	print("VisPreview: ステージ %d「%s」節=%d マス=%d 所持=%d ライフ=%d" % [
+	print("VisPreview: ステージ %d「%s」節=%d 辺=%d マス=%d 所持=%d ライフ=%d" % [
 		GameState.stage_number(), GameState.current_stage().display_name,
-		path.curve.point_count, spots.get_child_count(), GameState.gold, GameState.lives,
+		level.graph.node_count(), level.graph.route.edges.size(),
+		spots.get_child_count(), GameState.gold, GameState.lives,
 	])
 
 

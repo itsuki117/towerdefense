@@ -38,7 +38,9 @@ PLATEAU_MARGIN = 2.0
 
 
 # --- ステージ定義 -------------------------------------------------------------
-# nodes: 節の (x, z)。隣り合う節を順につないで 1 本の道にする。
+# nodes: 節の (x, z)。
+# edges: 節番号のペア。省略すると隣り合う節を順につないで 1 本道になる。
+# goal:  クリスタルを置く節。省略すると最後の節。
 # spots: 設置マスの (x, z)。
 # waves: 使う wave_XX.tres の番号。
 
@@ -72,18 +74,29 @@ STAGES = [
     },
     {
         "file": "stage_03",
-        "name": "ステージ 3 — 折り返しの道",
-        # 絵の 1 枚目。何度も折り返して、内側に通路が挟まる形。
-        # ここに枝を足すと分岐マップになる（§16.4-3）。
+        "name": "ステージ 3 — 分かれ道",
+        # 絵の 1 枚目。途中で道が二股に分かれ、合流してからクリスタルへ入る。
+        # **2 本の枝は同じ長さ (16)** にしてある。長さで差が付いていると
+        # A* が常に同じほうを選び、分岐を作った意味が無くなるため。
+        # タワーで片方を守るともう片方が選ばれる、という形にしたい。
         "nodes": [
-            (-12, -9), (5, -9), (5, -4), (-8, -4), (-8, 2),
-            (6, 2), (6, 6.5), (0, 6.5), (0, 8),
+            (-12, -9), (-4, -9), (-4, -3),
+            (-4, 4), (5, 4),            # 北回り（枝 A）
+            (5, -3),                    # 南回り（枝 B）
+            (5, 8), (0, 8),
         ],
+        "edges": [
+            (0, 1), (1, 2),
+            (2, 3), (3, 4),             # 枝 A: 7 + 9 = 16
+            (2, 5), (5, 4),             # 枝 B: 9 + 7 = 16
+            (4, 6), (6, 7),
+        ],
+        "goal": 7,
         "spots": [
-            (-9, -6.5), (-5, -6.5), (-1, -6.5), (2, -6.5),
-            (-4, -1), (0, -1), (3.5, -1),
-            (-4.5, 4.3), (0.6, 4.3), (3.5, 4.3),
-            (8.5, -2), (9, 4), (-11, -1),
+            (-8, -6), (-1, -6), (2, -6),
+            (-11, -1), (-8, 0), (-8, 3),
+            (-1, 0.5), (2.5, 0.5),
+            (8, 0), (8.5, 5), (2.5, 6), (-3, 7),
         ],
         "waves": [5, 6, 7, 8],
         "lives": 20,
@@ -113,10 +126,19 @@ def _inside_plateau(point):
     )
 
 
+def edges_of(stage):
+    nodes = stage["nodes"]
+    return stage.get("edges") or [(i, i + 1) for i in range(len(nodes) - 1)]
+
+
+def goal_of(stage):
+    return stage.get("goal", len(stage["nodes"]) - 1)
+
+
 def verify(stage):
     problems = []
     nodes = stage["nodes"]
-    segments = list(zip(nodes, nodes[1:]))
+    segments = [(nodes[a], nodes[b]) for a, b in edges_of(stage)]
 
     for point in nodes:
         if not _inside_plateau(point):
@@ -143,7 +165,7 @@ def verify(stage):
 def route_text(stage):
     nodes = stage["nodes"]
     node_values = ", ".join("%g, 0, %g" % (x, z) for x, z in nodes)
-    edges = ", ".join("Vector2i(%d, %d)" % (i, i + 1) for i in range(len(nodes) - 1))
+    edges = ", ".join("Vector2i(%d, %d)" % pair for pair in edges_of(stage))
     return (
         '[gd_resource type="Resource" script_class="RouteData" load_steps=2 format=3]\n\n'
         '[ext_resource type="Script" path="res://scripts/data/route_data.gd" id="1_route_data"]\n\n'
@@ -210,11 +232,12 @@ def build():
     for stage in STAGES:
         problems = verify(stage)
         nodes = stage["nodes"]
+        edges = edges_of(stage)
         length = sum(
-            math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(nodes, nodes[1:])
+            math.hypot(nodes[b][0] - nodes[a][0], nodes[b][1] - nodes[a][1]) for a, b in edges
         )
-        print("%-10s 節 %2d / マス %2d / 全長 %5.1f  %s"
-              % (stage["file"], len(nodes), len(stage["spots"]), length,
+        print("%-10s 節 %2d / 辺 %2d / マス %2d / 全長 %5.1f  %s"
+              % (stage["file"], len(nodes), len(edges), len(stage["spots"]), length,
                  "OK" if not problems else "NG"))
         for problem in problems:
             print("    - " + problem)

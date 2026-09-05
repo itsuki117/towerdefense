@@ -1,10 +1,13 @@
 class_name Enemy
-extends PathFollow3D
-## 固定ルートを進む敵。
+extends Node3D
+## 道グラフを辿ってクリスタルを目指す敵。
 ##
-## ルート追従は Path3D + PathFollow3D に任せ、このスクリプトは progress を進めるだけ。
-## v1.0 では経路探索を行わない（GDD の Non-Goals）。
-## 生成側 (WaveManager) が Path3D の直下に add_child すること。
+## v1.0 では Path3D + PathFollow3D に乗せていたが、道が分岐を持つグラフに
+## なったので自前で辺を渡り歩く。**節に着くたびに A* でゴールまでの経路を出し、
+## 次に進む辺を選ぶ**（RouteGraph）。タワーに守られた区間はコストが高いので、
+## 守りの薄い枝があればそちらへ回る。
+##
+## 生成側 (WaveManager) が setup() でグラフと種別を渡してから add_child すること。
 
 ## 撃破された。引数は獲得ゴールド。
 signal died(gold_value: int)
@@ -45,18 +48,29 @@ var _hop_time: float = 0.0
 ## 被弾フラッシュの残り時間。
 var _flash_remaining: float = 0.0
 
+var _graph: RouteGraph = null
+## 今いる辺（_from_node から _to_node へ）と、その辺をどれだけ進んだか。
+var _from_node: int = 0
+var _to_node: int = 0
+var _edge: int = -1
+var _travelled: float = 0.0
+
+
+## グラフと種別を渡す。add_child より前に呼ぶこと。
+func setup(graph: RouteGraph, enemy_data: EnemyData) -> void:
+	_graph = graph
+	data = enemy_data
+
 
 func _ready() -> void:
 	add_to_group(&"enemy")
-	# 終点でループさせず、progress_ratio を 1.0 で止める。
-	loop = false
-	rotation_mode = PathFollow3D.ROTATION_Y
-
-	if data == null:
-		push_warning("Enemy: EnemyData が未設定です")
+	if data == null or _graph == null:
+		push_warning("Enemy: setup() でデータとグラフを渡してください")
+		set_physics_process(false)
 		return
 	_hp = data.max_hp
 	_hop_time = randf() * TAU
+	_start_at(_graph.spawn_node())
 	_apply_visual()
 
 
@@ -66,9 +80,59 @@ func _physics_process(delta: float) -> void:
 	_update_slow(delta)
 	_update_hop(delta)
 	_update_flash(delta)
-	progress += data.speed * _slow_factor * delta
-	if progress_ratio >= 1.0:
+	_advance(data.speed * _slow_factor * delta)
+
+
+## 道の上を distance だけ進める。節をまたぐときは A* で次の辺を選ぶ。
+func _advance(distance: float) -> void:
+	_travelled += distance
+	var length := _graph.edge_length(_edge)
+	# 1 フレームで節を 2 つ以上またぐこともあるので while で回す。
+	while _travelled >= length:
+		_travelled -= length
+		if _to_node == _graph.goal:
+			_finish(true)
+			return
+		if not _step_to(_graph.next_node(_to_node)):
+			_finish(true)
+			return
+		length = _graph.edge_length(_edge)
+	_place_on_edge(length)
+
+
+func _start_at(node: int) -> void:
+	_from_node = node
+	_edge = -1
+	_travelled = 0.0
+	if not _step_to(_graph.next_node(node)):
+		# 進む先が無い＝グラフが壊れている。到達扱いにして片付ける。
 		_finish(true)
+		return
+	_place_on_edge(_graph.edge_length(_edge))
+
+
+## 今いる節から next へ、辺を 1 本ぶん乗り換える。つながっていなければ false。
+func _step_to(next: int) -> bool:
+	# まだ辺に乗っていない（湧いた直後）なら _from_node が今いる節。
+	var current := _to_node if _edge >= 0 else _from_node
+	var edge := _graph.edge_between(current, next)
+	if edge < 0:
+		return false
+	_from_node = current
+	_to_node = next
+	_edge = edge
+	return true
+
+
+func _place_on_edge(length: float) -> void:
+	var from := _graph.position_of(_from_node)
+	var to := _graph.position_of(_to_node)
+	position = from.lerp(to, clampf(_travelled / maxf(length, 0.0001), 0.0, 1.0))
+	var forward := to - from
+	forward.y = 0.0
+	if forward.length_squared() > 0.0001:
+		# 進む向きへ体を向ける。PathFollow3D の rotation_mode の代わり。
+		look_at(position + forward, Vector3.UP)
 
 
 func take_damage(amount: int) -> void:
@@ -94,6 +158,17 @@ func apply_slow(factor: float, duration: float) -> void:
 	_refresh_color()
 
 
+## ゴールまでの残り距離。タワーのターゲット選択に使う（小さいほど優先）。
+##
+## v1.0 では PathFollow3D の progress_ratio を使っていたが、分岐があると
+## 「どれだけ進んだか」では順位が付かない。A* が選んだ経路の残り距離なら、
+## どの枝を通っていても同じものさしで比べられる。
+func get_distance_to_goal() -> float:
+	if _graph == null:
+		return INF
+	return _graph.distance_to_goal(_to_node) + maxf(_graph.edge_length(_edge) - _travelled, 0.0)
+
+
 ## 被弾フラッシュを時間で戻す。
 func _update_flash(delta: float) -> void:
 	if _flash_remaining <= 0.0:
@@ -111,9 +186,14 @@ func _update_slow(delta: float) -> void:
 		_refresh_color()
 
 
-## ゴールへの近さ (0.0〜1.0)。タワーのターゲット選択に使う。
-func get_goal_progress() -> float:
-	return progress_ratio
+## 遅くなるほど跳ねる間隔も伸びる。減速が効いていることが動きでも分かる。
+func _update_hop(delta: float) -> void:
+	_hop_time += delta * HOP_SPEED * _slow_factor
+	var lift := absf(sin(_hop_time))
+	var squash := 1.0 - lift * SQUASH
+	var stretch := 1.0 + lift * SQUASH
+	_visual.position.y = BODY_SIZE.y + lift * HOP_HEIGHT * data.body_scale
+	_visual.scale = Vector3(squash, stretch, squash) * data.body_scale
 
 
 func _finish(reached_goal: bool) -> void:
@@ -131,16 +211,6 @@ func _finish(reached_goal: bool) -> void:
 		Sfx.play(&"enemy_die", -4.0)
 		died.emit(data.gold_value)
 	queue_free()
-
-
-## 遅くなるほど跳ねる間隔も伸びる。減速が効いていることが動きでも分かる。
-func _update_hop(delta: float) -> void:
-	_hop_time += delta * HOP_SPEED * _slow_factor
-	var lift := absf(sin(_hop_time))
-	var squash := 1.0 - lift * SQUASH
-	var stretch := 1.0 + lift * SQUASH
-	_visual.position.y = BODY_SIZE.y + lift * HOP_HEIGHT * data.body_scale
-	_visual.scale = Vector3(squash, stretch, squash) * data.body_scale
 
 
 func _apply_visual() -> void:

@@ -42,7 +42,7 @@ enum Region {
 
 @export_group("参照")
 @export var terrain_path: NodePath = ^"../../Ground"
-@export var path_node_path: NodePath = ^"../../Path3D"
+@export var level_path: NodePath = ^"../.."
 @export var build_spots_path: NodePath = ^"../../BuildSpots"
 ## この位置の周りは空けておく（拠点クリスタルなど）。
 @export var keep_out_points: Array[Vector3] = []
@@ -135,16 +135,11 @@ func _is_allowed(
 ## 道の中心線を一定間隔で点にしたもの。距離判定はこの点との距離で足りる。
 func _road_points() -> PackedVector2Array:
 	var points := PackedVector2Array()
-	var path := get_node_or_null(path_node_path) as Path3D
-	if path == null or path.curve == null:
+	var level := get_node_or_null(level_path)
+	if level == null or not level.has_method(&"road_points"):
 		return points
-	var length := path.curve.get_baked_length()
-	var step := 0.5
-	var distance := 0.0
-	while distance <= length:
-		var sample := path.curve.sample_baked(distance)
-		points.append(Vector2(sample.x, sample.z))
-		distance += step
+	for point in level.road_points(0.5):
+		points.append(Vector2(point.x, point.z))
 	return points
 
 

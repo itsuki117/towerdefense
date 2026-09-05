@@ -17,12 +17,11 @@ const POLL_INTERVAL := 0.1
 ## シーンに直接並べるのはツールから差し替えたいときだけ。
 ## 型付き配列にしないのは WaveData の entries と同じ理由。
 @export var waves: Array = []
-@export var path_node: NodePath
 @export var auto_start: bool = true
 ## ゲーム開始から第 1 波までの猶予 (秒)。
 @export_range(0.0, 20.0, 0.5) var first_wave_delay: float = 3.0
 
-var _path: Path3D = null
+var _level: Level = null
 var _running: bool = false
 ## スポーン中の WaveEntry 数。0 になったらその波の湧きは終わり。
 var _active_spawners: int = 0
@@ -35,9 +34,9 @@ var _countdown: float = -1.0
 
 
 func _ready() -> void:
-	_path = get_node_or_null(path_node) as Path3D
-	if _path == null:
-		push_error("WaveManager: path_node に Path3D を指定してください")
+	_level = Level.find(self)
+	if _level == null or _level.graph == null:
+		push_error("WaveManager: 道グラフを持つ Level が見つかりません")
 		return
 	if enemy_scene == null:
 		push_error("WaveManager: enemy_scene が未設定です")
@@ -157,11 +156,17 @@ func _spawn(data: EnemyData) -> void:
 	var enemy := enemy_scene.instantiate() as Enemy
 	if enemy == null:
 		return
-	# add_child より前に渡しておくと、敵の _ready で HP と見た目が確定する。
-	enemy.data = data
+	# add_child より前に渡しておくと、敵の _ready で HP・見た目・出発点が確定する。
+	enemy.setup(_level.graph, data)
 	enemy.died.connect(_on_enemy_died)
 	enemy.reached_end.connect(_on_enemy_reached_end)
-	_path.add_child(enemy)
+	_enemy_parent().add_child(enemy)
+
+
+## 敵の置き場。タワーや弾と同じくグループで探す（ツリーの形に依存させない）。
+func _enemy_parent() -> Node:
+	var container := get_tree().get_first_node_in_group(&"enemy_container")
+	return container if container != null else _level
 
 
 func _wait_until_field_cleared() -> void:

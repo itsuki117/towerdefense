@@ -124,6 +124,8 @@ func _try_build(spot: BuildSpot) -> void:
 	tower.data = data
 	_towers_parent.add_child(tower)
 	tower.global_position = spot.global_position
+	# 位置が決まってから、守る区間をグラフに教える（敵の経路選択に効く）。
+	tower.register_threat()
 	spot.place_tower(tower)
 	Burst.spawn(spot, spot.global_position + Vector3.UP * 0.15, Burst.Kind.DUST, DUST_COLOR)
 	Sfx.play(&"build", -4.0)

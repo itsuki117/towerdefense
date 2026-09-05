@@ -5,9 +5,7 @@
 [sub_resource type="SphereShape3D" id="SphereShape3D_hitbox"]
 radius = 0.5
 
-[node name="Enemy" type="PathFollow3D"]
-rotation_mode = 1
-loop = false
+[node name="Enemy" type="Node3D"]
 script = ExtResource("1_enemy")
 
 [node name="Visual" type="MeshInstance3D" parent="."]

@@ -4,7 +4,7 @@
 
 [resource]
 script = ExtResource("1_route_data")
-nodes = PackedVector3Array(-12, 0, -9, 5, 0, -9, 5, 0, -4, -8, 0, -4, -8, 0, 2, 6, 0, 2, 6, 0, 6.5, 0, 0, 6.5, 0, 0, 8)
-edges = Array[Vector2i]([Vector2i(0, 1), Vector2i(1, 2), Vector2i(2, 3), Vector2i(3, 4), Vector2i(4, 5), Vector2i(5, 6), Vector2i(6, 7), Vector2i(7, 8)])
+nodes = PackedVector3Array(-12, 0, -9, -4, 0, -9, -4, 0, -3, -4, 0, 4, 5, 0, 4, 5, 0, -3, 5, 0, 8, 0, 0, 8)
+edges = Array[Vector2i]([Vector2i(0, 1), Vector2i(1, 2), Vector2i(2, 3), Vector2i(3, 4), Vector2i(2, 5), Vector2i(5, 4), Vector2i(4, 6), Vector2i(6, 7)])
 spawn_node = 0
-goal_node = 8
+goal_node = 7

@@ -50,18 +50,38 @@ func _physics_process(_delta: float) -> void:
 
 
 ## 射程内で最もゴールに近い敵を返す。いなければ null。
+##
+## 分岐があると「どれだけ進んだか」では順位が付かないので、
+## A* が選んだ経路の残り距離で比べる（小さいほどゴールに近い）。
 func _find_target() -> Enemy:
 	var best: Enemy = null
-	var best_progress := -1.0
+	var best_distance := INF
 	for area in _range_area.get_overlapping_areas():
 		var enemy := area.get_parent() as Enemy
 		if enemy == null:
 			continue
-		var progress := enemy.get_goal_progress()
-		if progress > best_progress:
-			best_progress = progress
+		var distance := enemy.get_distance_to_goal()
+		if distance < best_distance:
+			best_distance = distance
 			best = enemy
 	return best
+
+
+## 自分が守っている区間を道グラフに教える。
+##
+## 設置してから呼ぶこと。_ready の時点ではまだ BuildManager が位置を入れておらず、
+## global_position が原点のままなので、どの区間を守っているか計算できない。
+func register_threat() -> void:
+	if data == null:
+		return
+	var level := Level.find(self)
+	if level == null or level.graph == null:
+		return
+	var graph := level.graph
+	for edge in graph.route.edges.size():
+		var covered := graph.covered_length(edge, global_position, data.attack_range)
+		if covered > 0.0:
+			graph.add_threat(edge, covered)
 
 
 func _aim_at(target: Enemy) -> void:

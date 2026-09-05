@@ -55,7 +55,7 @@ extends MeshInstance3D
 @export var flatten_radius: float = 1.9
 ## 均した所から起伏に戻るまでの幅。
 @export var flatten_falloff: float = 1.8
-@export var path_node_path: NodePath = ^"../Path3D"
+@export var level_path: NodePath = ^".."
 @export var build_spots_path: NodePath = ^"../BuildSpots"
 
 @export_group("色")
@@ -286,14 +286,14 @@ func _jitter_at(ix: int, iz: int, salt: float) -> float:
 ## 道と設置マスの中心を集める。均す判定はこの点との距離だけで足りる。
 func _collect_flatten_points() -> void:
 	_flatten_points = PackedVector2Array()
-	var path := get_node_or_null(path_node_path) as Path3D
-	if path != null and path.curve != null:
-		var length := path.curve.get_baked_length()
-		var distance := 0.0
-		while distance <= length:
-			var sample := path.curve.sample_baked(distance)
-			_flatten_points.append(Vector2(sample.x, sample.z))
-			distance += 0.6
+	# エディタでは Level（@tool ではない）のメソッドを呼べず、そもそも走らせる
+	# ステージも決まっていない。道を均さない素の島として見せる。
+	if Engine.is_editor_hint():
+		return
+	var level := get_node_or_null(level_path)
+	if level != null and level.has_method(&"road_points"):
+		for point in level.road_points():
+			_flatten_points.append(Vector2(point.x, point.z))
 	var spots := get_node_or_null(build_spots_path)
 	if spots != null:
 		for child in spots.get_children():

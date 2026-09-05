@@ -1,5 +1,7 @@
+class_name Level
 extends Node3D
 ## StageData を読んで、道・設置マス・拠点の位置を組み立てる。
+## そのステージの道グラフ (RouteGraph) を持ち、地形・道・敵・タワーへ配る。
 ##
 ## ステージごとに違うのは「道の形・設置マスの位置・ウェーブ構成」だけなので、
 ## シーンは 1 つで足りる。地形・道のリボン・小物は道と設置マスを読んで
@@ -10,9 +12,11 @@ extends Node3D
 ## Path3D と BuildSpots を読む）には間に合わない。_enter_tree は親が先に走る。
 
 @export var build_spot_scene: PackedScene
-@export var path_node_path: NodePath = ^"Path3D"
 @export var build_spots_path: NodePath = ^"BuildSpots"
 @export var base_path: NodePath = ^"Base"
+
+## このステージの道グラフ。子ノードは level_path 経由でここを見る。
+var graph: RouteGraph = null
 
 
 func _enter_tree() -> void:
@@ -24,13 +28,9 @@ func _enter_tree() -> void:
 	if stage.route == null:
 		push_error("Level: %s に道 (RouteData) が設定されていません" % stage.display_name)
 		return
-	if stage.route.has_branch():
-		# 分岐は §16.4-3 で対応する。今は最初の枝だけを通ってしまう。
-		push_warning("Level: 分岐のある道はまだ扱えません")
-
-	var path := get_node_or_null(path_node_path) as Path3D
-	if path != null:
-		path.curve = stage.route.build_curve()
+	graph = RouteGraph.new(stage.route)
+	# どこからでも掴めるようにしておく（弾やエフェクトの置き場と同じ探し方）。
+	add_to_group(&"level")
 
 	# 拠点は道の終点に置く。ステージが変わっても守る対象の位置は道が決める。
 	var base := get_node_or_null(base_path) as Node3D
@@ -54,3 +54,14 @@ func _place_build_spots(stage: StageData) -> void:
 		spot.name = "BuildSpot%d" % (i + 1)
 		parent.add_child(spot)
 		spot.position = stage.build_spots[i]
+
+
+## 道の中心線を一定間隔で点にしたもの。
+## 地形を平らに均す判定と、小物を道から避ける判定に使う。
+func road_points(step: float = 0.6) -> PackedVector3Array:
+	return graph.sample_points(step) if graph != null else PackedVector3Array()
+
+
+## どこからでも Level を掴むための入口。
+static func find(node: Node) -> Level:
+	return node.get_tree().get_first_node_in_group(&"level") as Level
