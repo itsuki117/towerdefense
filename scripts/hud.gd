@@ -18,7 +18,8 @@ extends Control
 @onready var _gold_label: Label = $Stats/GoldLabel
 @onready var _lives_label: Label = $Stats/LivesLabel
 @onready var _wave_label: Label = $Stats/WaveLabel
-@onready var _tower_bar: HBoxContainer = $TowerBar
+@onready var _tower_bar: HBoxContainer = $BuildBar/TowerRow
+@onready var _warrior_bar: HBoxContainer = $BuildBar/WarriorRow
 @onready var _next_wave_button: Button = $NextWaveButton
 
 var _build_manager: BuildManager = null
@@ -87,13 +88,15 @@ func _create_warrior_buttons() -> void:
 			continue
 		var button := Button.new()
 		button.focus_mode = Control.FOCUS_NONE
-		button.custom_minimum_size = Vector2(190, 56)
-		button.text = "%s   %d G" % [data.display_name, data.cost]
-		button.tooltip_text = "HP %d ／ ダメージ %d ／ %.1f 回/秒　拠点から出て道を塞ぐ" % [
-			data.max_hp, data.damage, data.attack_rate,
+		button.custom_minimum_size = Vector2(150, 48)
+		button.text = "%s  %d G" % [data.display_name, data.cost]
+		# 数値より先に**仕事**を出す。役職の違いは HP やダメージではなく、
+		# 「何体止められるか」「どこから殴るか」で作ってあるため。
+		button.tooltip_text = "%s\nHP %d ／ ダメージ %d ／ %.1f 回/秒 ／ 射程 %.1f" % [
+			data.role_text, data.max_hp, data.damage, data.attack_rate, data.attack_range,
 		]
 		button.pressed.connect(_on_warrior_button_pressed.bind(data))
-		_tower_bar.add_child(button)
+		_warrior_bar.add_child(button)
 		_warrior_buttons[button] = data
 
 

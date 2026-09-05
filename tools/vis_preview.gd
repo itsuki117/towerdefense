@@ -24,7 +24,9 @@ func _ready() -> void:
 	var manager: BuildManager = main.get_node(^"BuildManager")
 	# A* の確認は「何も建っていない状態」から始めたいので、既定の設置は飛ばす。
 	# A* と戦士の確認はタワー抜きで見たい（敵が着く前に溶けてしまうため）。
-	var bare := "astar" in OS.get_cmdline_user_args() or "warrior" in OS.get_cmdline_user_args()
+	var bare := "astar" in OS.get_cmdline_user_args() \
+		or "warrior" in OS.get_cmdline_user_args() \
+		or "archer" in OS.get_cmdline_user_args()
 	if not bare:
 		_build_preview_towers(main, manager)
 	manager.clear_selection()
@@ -44,6 +46,8 @@ func _ready() -> void:
 		await _show_grid(main, manager)
 	if "warrior" in OS.get_cmdline_user_args():
 		await _check_warriors(main)
+	if "archer" in OS.get_cmdline_user_args():
+		await _check_archers_alone(main)
 
 	_report_stage(main)
 	# `-- stage3` のように番号を付けると、そのステージに着くまで進める。
@@ -247,25 +251,59 @@ func _show_grid(main: Node, manager: BuildManager) -> void:
 
 
 
-## 戦士が拠点から出て、敵を足止めするかを確かめる。
+## 弓兵だけを並べたときに、前列が無いせいで崩れるかを確かめる。
+##
+## 弓兵は足止めしないので敵に触られない——という状態を放っておくと、
+## 「弓兵だけ並べるのが最適」になってしまう。すれ違いざまの反撃
+## (Enemy._strike_passing) がそれを潰しているかを見る。
+func _check_archers_alone(main: Node) -> void:
+	var manager: WarriorManager = main.get_node(^"WarriorManager")
+	var waves: WaveManager = main.get_node(^"WaveManager")
+	var data := load("res://resources/warriors/warrior_archer.tres")
+	for i in 3:
+		manager.hire(data)
+	print("VisPreview: 弓兵だけ %d 人（前列なし）" % manager.alive_count())
+	waves.request_next_wave()
+	await get_tree().create_timer(4.0).timeout
+	waves.request_next_wave()
+
+	for step in 4:
+		await get_tree().create_timer(5.0).timeout
+		print("VisPreview: %2d 秒 弓兵 %d 人 / 敵 %d 体 / ライフ %d" % [
+			(step + 1) * 5, manager.alive_count(),
+			get_tree().get_nodes_in_group(&"enemy").size(), GameState.lives,
+		])
+
+
+## 役職 3 種を 1 人ずつ雇い、それぞれが役職どおりに振る舞うかを確かめる。
+##
+## 見たいのは「何人生き残ったか」ではなく **役職の切り分けが効いているか**。
+## 盾兵が 2 体抱えているか、弓兵が誰も掴んでいないか、を数えて出す。
 func _check_warriors(main: Node) -> void:
 	var manager: WarriorManager = main.get_node(^"WarriorManager")
 	var waves: WaveManager = main.get_node(^"WaveManager")
-	var data := load("res://resources/warriors/warrior_guard.tres")
-	for i in 3:
-		manager.hire(data)
-	print("VisPreview: 雇用 %d 人 / 上限 %d / 所持 %d" % [
-		manager.alive_count(), manager.max_alive, GameState.gold,
-	])
+	for name in ["warrior_shield", "warrior_guard", "warrior_archer"]:
+		var data := load("res://resources/warriors/%s.tres" % name)
+		print("VisPreview: %s を雇用 %s（残り %d G）" % [
+			data.display_name, manager.hire(data), GameState.gold,
+		])
+	# 波を 2 つ重ねる。1 波目だけだと敵が 1 体ずつ来るので、
+	# 盾兵が 2 体まとめて抱えている場面が出ない。
+	waves.request_next_wave()
+	await get_tree().create_timer(4.0).timeout
 	waves.request_next_wave()
 
-	for step in 3:
+	for step in 4:
 		await get_tree().create_timer(5.0).timeout
 		var enemies := get_tree().get_nodes_in_group(&"enemy")
 		var blocked := 0
 		for node in enemies:
 			if not (node as Enemy).can_be_engaged():
 				blocked += 1
-		print("VisPreview: %2d 秒 戦士 %d 人 / 敵 %d 体（足止め %d）/ ライフ %d" % [
-			(step + 1) * 5, manager.alive_count(), enemies.size(), blocked, GameState.lives,
+		var held := ""
+		for node in get_tree().get_nodes_in_group(&"warrior"):
+			var warrior := node as Warrior
+			held += " %s %d体" % [warrior.data.display_name, warrior.held_count()]
+		print("VisPreview: %2d 秒 敵 %d 体（足止め %d）/ ライフ %d /%s" % [
+			(step + 1) * 5, enemies.size(), blocked, GameState.lives, held,
 		])

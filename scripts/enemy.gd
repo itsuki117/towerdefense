@@ -8,7 +8,9 @@ extends Node3D
 ## 守りの薄い枝があればそちらへ回る。
 ##
 ## 自軍の戦士に掴まれると足を止めて殴り合う。**掴めるのは 1 体につき 1 人**で、
-## 手が空いている戦士がいなければ素通りする。
+## 手が空いている戦士がいなければ素通りする。ただし素通りするときも、
+## すぐ横にいる戦士は歩きながら殴る（_strike_passing）。これが無いと
+## 足止めしない役職＝弓兵が一切傷つかず、前列を用意する理由が無くなる。
 ##
 ## 生成側 (WaveManager) が setup() でグラフと種別を渡してから add_child すること。
 
@@ -27,6 +29,10 @@ const FLASH_COLOR := Color(1.0, 0.96, 0.85)
 const FLASH_TIME := 0.13
 ## 真っ白まで飛ばすと元の色が分からなくなるので、混ぜる上限を決める。
 const FLASH_STRENGTH := 0.8
+
+## 素通りするときに戦士へ手が届く距離。掴む距離より短くして、
+## 「本当にすれ違ったとき」だけ当たるようにする。
+const PASSING_REACH := 0.85
 
 ## 体の大きさ（半径）。EnemyData.body_scale がこれに掛かる。
 const BODY_SIZE := Vector3(0.42, 0.36, 0.42)
@@ -93,6 +99,7 @@ func _physics_process(delta: float) -> void:
 	if _blocker != null:
 		_fight(delta)
 		return
+	_strike_passing(delta)
 	_advance(data.speed * _slow_factor * delta)
 
 
@@ -172,6 +179,30 @@ func _fight(delta: float) -> void:
 		return
 	_attack_cooldown = 1.0 / maxf(data.attack_rate, 0.01)
 	_blocker.call(&"take_damage", data.melee_damage)
+
+
+## 止められていないときに、すぐ横の戦士を歩きながら殴る。
+## 足は止めない——止めてしまうと足止めしない役職が足止め役になってしまう。
+func _strike_passing(delta: float) -> void:
+	_attack_cooldown -= delta
+	if _attack_cooldown > 0.0:
+		return
+	var nearest: Node3D = null
+	var nearest_distance := PASSING_REACH
+	for node in get_tree().get_nodes_in_group(&"warrior"):
+		var warrior := node as Node3D
+		if warrior == null:
+			continue
+		var distance := global_position.distance_to(warrior.global_position)
+		if distance < nearest_distance:
+			nearest_distance = distance
+			nearest = warrior
+	if nearest == null:
+		# 空振りに冷却を使わない。次のフレームでまた探す。
+		_attack_cooldown = 0.0
+		return
+	_attack_cooldown = 1.0 / maxf(data.attack_rate, 0.01)
+	nearest.call(&"take_damage", data.melee_damage)
 
 
 func take_damage(amount: int) -> void:

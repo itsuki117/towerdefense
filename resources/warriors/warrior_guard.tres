@@ -5,10 +5,15 @@
 [resource]
 script = ExtResource("1_warrior_data")
 display_name = "衛兵"
+role_text = "1 体を足止めして、そのまま倒す"
 cost = 40
 max_hp = 40
 damage = 5
 attack_rate = 1.2
 move_speed = 3.0
-engage_radius = 1.1
+attack_range = 1.1
+block_capacity = 1
+gear = 0
+body_scale = 1.0
 body_color = Color(0.86, 0.8, 0.66, 1)
+gear_color = Color(0.86, 0.9, 0.96, 1)

@@ -1,14 +1,16 @@
 class_name Warrior
 extends Node3D
-## クリスタルから出て道を遡り、敵とぶつかったら足を止めて戦う自軍ユニット。
+## クリスタルから出て道を遡り、敵を捉えたら足を止めて戦う自軍ユニット。
 ##
 ## **経路探索は要らない。** 道グラフを「ゴールから遠ざかる向き」に辿るだけ
 ## (RouteGraph.next_node_away)。行き先を選ぶ理由があるのは敵のほうで、
 ## 戦士は前へ出ていくだけなので、敵の A* をそのまま使い回さない。
 ##
-## **1 人が足止めできる敵は 1 体。** 手が空いている戦士がいなければ敵は素通りする。
-## この規則だと「何人出したか」がそのまま止められる数になり、
-## 画面を見ただけで何が起きているか分かる。
+## **役職の違いは block_capacity と attack_range で作る**（WarriorData）。
+## 敵 1 体を掴めるのは 1 人だけなので、盾兵が 2 体を抱えている間は
+## 衛兵がその 2 体に手を出せない。誰が誰を持つかが自然に分かれる。
+## 掴まない役職（弓兵）は敵を素通りさせるが、そのぶん殴られもしない
+## ——前列が崩れて敵とすれ違うまでは（Enemy._strike_passing）。
 ##
 ## 生成側 (WarriorManager) が setup() でグラフと種別を渡してから add_child すること。
 
@@ -42,8 +44,9 @@ var _at_front: bool = false
 ## 道の中心からの左右のずれ。同時に雇うと全員が同じ位置に重なるので、
 ## 個体ごとに散らして横並びに見せる。
 var _side_offset: float = 0.0
-## 足止めしている敵。null なら前進中。
-var _target: Enemy = null
+## 今かかっている敵。1 体でも抱えていれば足を止める。
+## 掴む役職なら block_capacity 体まで、掴まない役職なら狙っている 1 体。
+var _targets: Array[Enemy] = []
 var _attack_cooldown: float = 0.0
 var _flash_remaining: float = 0.0
 
@@ -72,42 +75,84 @@ func _physics_process(delta: float) -> void:
 		return
 	_update_flash(delta)
 
-	if _target != null and not is_instance_valid(_target):
-		# 相手が倒れた。また前へ出る。
-		_target = null
-	if _target == null:
-		_look_for_target()
-	if _target != null:
+	_drop_lost_targets()
+	if _targets.size() < _wanted_targets():
+		_look_for_targets()
+	if not _targets.is_empty():
 		_fight(delta)
 		return
 	if not _at_front:
 		_advance(data.move_speed * delta)
 
 
-## 射程ならぬ足止め範囲に入った、まだ誰にも止められていない敵を掴む。
-func _look_for_target() -> void:
-	var best: Enemy = null
-	var best_distance := data.engage_radius
+## 今かかっている敵の数。検証ツールが役職の切り分けを数えるのに使う。
+func held_count() -> int:
+	return _targets.size()
+
+
+## 足止めするか。しない役職（弓兵）は敵を掴まず、素通りさせる。
+func blocks() -> bool:
+	return data != null and data.block_capacity > 0
+
+
+## 同時にかかれる敵の数。掴まない役職も狙いは 1 体持つ。
+func _wanted_targets() -> int:
+	return maxi(data.block_capacity, 1)
+
+
+## 倒された・拠点へ抜けた相手をリストから外す。
+func _drop_lost_targets() -> void:
+	for i in range(_targets.size() - 1, -1, -1):
+		if not is_instance_valid(_targets[i]):
+			_targets.remove_at(i)
+
+
+## 攻撃範囲に入った敵を、空いているぶんだけ捉える。
+##
+## 掴む役職は「まだ誰にも掴まれていない敵」だけを取る。掴まない役職は
+## 掴み合いに参加しないので、すでに前列が抱えている敵でも狙ってよい
+## （むしろ前列が抱えている敵を撃つのが仕事）。
+func _look_for_targets() -> void:
+	var candidates: Array[Enemy] = []
 	for node in get_tree().get_nodes_in_group(&"enemy"):
 		var enemy := node as Enemy
-		if enemy == null or not enemy.can_be_engaged():
+		if enemy == null or _targets.has(enemy):
 			continue
-		var distance := global_position.distance_to(enemy.global_position)
-		if distance < best_distance:
-			best_distance = distance
-			best = enemy
-	if best != null and best.engage(self):
-		_target = best
-		# 掴んだ相手のほうを向く。止まって殴り合っているのが分かるように。
-		_face(best.global_position)
+		if blocks() and not enemy.can_be_engaged():
+			continue
+		if global_position.distance_to(enemy.global_position) > data.attack_range:
+			continue
+		candidates.append(enemy)
+	# 近い順に取る。遠くの敵を先に掴むと、目の前を素通りされて不自然に見える。
+	candidates.sort_custom(_closer_to_me)
+
+	var wanted := _wanted_targets()
+	for enemy in candidates:
+		if _targets.size() >= wanted:
+			break
+		if blocks() and not enemy.engage(self):
+			continue
+		_targets.append(enemy)
+
+	if not _targets.is_empty():
+		# 相手のほうを向く。止まって戦っているのが分かるように。
+		_face(_targets[0].global_position)
 
 
+func _closer_to_me(a: Enemy, b: Enemy) -> bool:
+	return global_position.distance_squared_to(a.global_position) \
+		< global_position.distance_squared_to(b.global_position)
+
+
+## 抱えている中の 1 体だけを殴る。盾兵は 2 体を止めても倒す速さは変わらない
+## ——止めるのが仕事で、倒すのは別の役職の仕事、という切り分けをここで作る。
 func _fight(delta: float) -> void:
+	_face(_targets[0].global_position)
 	_attack_cooldown -= delta
 	if _attack_cooldown > 0.0:
 		return
 	_attack_cooldown = 1.0 / maxf(data.attack_rate, 0.01)
-	_target.take_damage(data.damage)
+	_targets[0].take_damage(data.damage)
 
 
 func take_damage(amount: int) -> void:
@@ -123,9 +168,12 @@ func take_damage(amount: int) -> void:
 func _fall() -> void:
 	_finished = true
 	remove_from_group(&"warrior")
-	if _target != null and is_instance_valid(_target):
-		# 掴んでいた敵を放してやらないと、その敵が永久に止まったままになる。
-		_target.release()
+	# 掴んでいた敵を放してやらないと、その敵が永久に止まったままになる。
+	if blocks():
+		for enemy in _targets:
+			if is_instance_valid(enemy):
+				enemy.release()
+	_targets.clear()
 	Burst.spawn(self, global_position + Vector3.UP * BODY_SIZE.y, Burst.Kind.DEATH, data.body_color)
 	Sfx.play(&"enemy_die", -6.0)
 	died.emit()
@@ -198,7 +246,10 @@ func _update_flash(delta: float) -> void:
 	_refresh_color()
 
 
-## 胴と頭の 2 つの塊で作る。敵と同じ作り方なので見た目の質感が揃う。
+## 胴と頭の 2 つの塊 ＋ 装備 1 つ。敵と同じ作り方なので見た目の質感が揃う。
+##
+## 見下ろしの引きでは顔も装備の細部も読めないので、**役職はシルエットで分ける**。
+## 盾は横に広く、剣は斜めに、弓は体から上下へはみ出させてある。
 func _build_visual() -> void:
 	_material = LowPoly.vertex_color_material()
 
@@ -213,7 +264,39 @@ func _build_visual() -> void:
 	head.set_surface_override_material(0, _material)
 	_visual.add_child(head)
 
+	_visual.add_child(_build_gear())
+	_visual.scale = Vector3.ONE * data.body_scale
 	_refresh_color()
+
+
+## 装備。look_at で -Z が正面になるので、前は -Z 側。
+func _build_gear() -> MeshInstance3D:
+	var gear := MeshInstance3D.new()
+	var material := StandardMaterial3D.new()
+	material.albedo_color = data.gear_color
+	material.roughness = 1.0
+	material.specular_mode = BaseMaterial3D.SPECULAR_DISABLED
+
+	var box := BoxMesh.new()
+	match data.gear:
+		WarriorData.Gear.SHIELD:
+			# 体より広い板を正面に構える。見下ろすと横に広い壁として読める。
+			box.size = Vector3(0.62, 0.58, 0.09)
+			gear.position = Vector3(0.0, 0.46, -0.3)
+		WarriorData.Gear.BOW:
+			# 縦に長い弓。**体の輪郭の外**へ出す。体に重ねると見下ろしでは
+			# 頭の上に少し覗くだけになり、地面を背にしないと形が読めない。
+			box.size = Vector3(0.1, 1.0, 0.1)
+			gear.position = Vector3(0.44, 0.55, 0.0)
+			gear.rotation.z = deg_to_rad(-20.0)
+		_:
+			# 剣。斜めに構えて、静止していても向きが読めるようにする。
+			box.size = Vector3(0.1, 0.68, 0.1)
+			gear.position = Vector3(0.28, 0.58, -0.1)
+			gear.rotation.x = deg_to_rad(-32.0)
+	gear.mesh = box
+	gear.set_surface_override_material(0, material)
+	return gear
 
 
 func _refresh_color() -> void:

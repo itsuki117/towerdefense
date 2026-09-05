@@ -9,6 +9,8 @@
 [ext_resource type="Script" path="res://scripts/warrior_manager.gd" id="26_warrior_manager"]
 [ext_resource type="PackedScene" path="res://scenes/warrior.tscn" id="27_warrior"]
 [ext_resource type="Resource" path="res://resources/warriors/warrior_guard.tres" id="28_warrior_guard"]
+[ext_resource type="Resource" path="res://resources/warriors/warrior_shield.tres" id="29_warrior_shield"]
+[ext_resource type="Resource" path="res://resources/warriors/warrior_archer.tres" id="30_warrior_archer"]
 [ext_resource type="Script" path="res://scripts/interval_screen.gd" id="24_interval_screen"]
 [ext_resource type="Script" uid="uid://b4ol4218moxot" path="res://scripts/wave_manager.gd" id="2_wave_manager"]
 [ext_resource type="Script" uid="uid://b8lrcfllh0v23" path="res://scripts/hud.gd" id="3_hud"]
@@ -195,7 +197,7 @@ mouse_filter = 2
 script = ExtResource("3_hud")
 tower_options = [ExtResource("6_tower_arrow"), ExtResource("19_tower_frost")]
 build_manager_path = NodePath("../../BuildManager")
-warrior_options = [ExtResource("28_warrior_guard")]
+warrior_options = [ExtResource("29_warrior_shield"), ExtResource("28_warrior_guard"), ExtResource("30_warrior_archer")]
 wave_manager_path = NodePath("../../WaveManager")
 warrior_manager_path = NodePath("../../WarriorManager")
 
@@ -248,19 +250,31 @@ disabled = true
 theme_override_font_sizes/font_size = 20
 text = "ウェーブ進行中"
 
-[node name="TowerBar" type="HBoxContainer" parent="UI/HUD" unique_id=647932525]
+[node name="BuildBar" type="VBoxContainer" parent="UI/HUD" unique_id=647932525]
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -320.0
-offset_top = -88.0
-offset_right = 320.0
-offset_bottom = -24.0
+offset_left = -340.0
+offset_top = -142.0
+offset_right = 340.0
+offset_bottom = -22.0
 grow_horizontal = 2
 grow_vertical = 0
+mouse_filter = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="WarriorRow" type="HBoxContainer" parent="UI/HUD/BuildBar"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="TowerRow" type="HBoxContainer" parent="UI/HUD/BuildBar"]
+layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 12
 alignment = 1
