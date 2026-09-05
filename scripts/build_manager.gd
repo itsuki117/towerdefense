@@ -58,9 +58,6 @@ func select_tower(data: TowerData) -> void:
 	if _selected == data:
 		return
 	_selected = data
-	# 置けるマスは選んでいる間だけ見せる。常に光らせると画面が読めなくなる。
-	if _view != null:
-		_view.set_cells_visible(_selected != null)
 	selection_changed.emit(_selected)
 
 

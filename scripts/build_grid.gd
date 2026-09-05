@@ -4,7 +4,11 @@ extends RefCounted
 ##
 ## v1.0 は設置マスを手で 10 個置いていたが、置ける場所を決め打ちすると
 ## ステージを増やすたびに座標を用意することになる。地形（高台の内側か）と
-## 道（近すぎないか）から機械的に出せば、道を描くだけでマスが付いてくる。
+## 道（近すぎず、離れすぎていないか）から機械的に出せば、
+## 道を描くだけでマスが付いてくる。
+##
+## 置けるのは**道沿いの 1 マスぶん**だけ。高台じゅうに置けるようにすると、
+## 射程の届かない奥にも建てられてしまい、盤面が広いだけで選ぶ楽しさにならない。
 ##
 ## マスに対応するノードは作らない。100 マス近くあるので Area3D を並べると
 ## 重くなるし、当たり判定も要らない（クリック位置は地面との交点から割り出す）。
@@ -14,6 +18,12 @@ extends RefCounted
 const CELL := 2.0
 ## 道の中心線から空ける距離。道の半幅 1.05 ＋ 土台 0.8 に余裕を足した値。
 const ROAD_CLEARANCE := 2.0
+## 道の中心線からここまでしか置けない。**道沿い 1 マスぶんだけ**にするための上限。
+##
+## マスの半分を足しているのは、道がマスの線に重なっているかどうかで
+## 帯の幅が変わってしまうため。道がマスの中心線上にあるときは距離 2.0 の列だけ、
+## 半マスずれているときは距離 3.0 の列だけが残り、どちらでも 1 列になる。
+const ROAD_MAX_DISTANCE := ROAD_CLEARANCE + CELL * 0.5
 ## 高台の輪郭から内側へこれだけ入っていないと置けない。
 ## 崖の肩に建てると足元が斜面になって浮いて見える。
 const PLATEAU_MARGIN := 1.8
@@ -56,8 +66,10 @@ func _init(terrain: Node, graph: RouteGraph, extents: Vector2, center: Vector2) 
 				continue
 			if Vector2(point.x - goal.x, point.z - goal.z).length() < BASE_CLEARANCE:
 				continue
+			# 道から離れたマスは置けない。射程の届かない奥に建てられても
+			# 意味が無く、盤面が広いだけで選ぶ楽しさにならない。
 			var road_distance := _distance_to_road(point, road)
-			if road_distance < ROAD_CLEARANCE:
+			if road_distance < ROAD_CLEARANCE or road_distance > ROAD_MAX_DISTANCE:
 				continue
 			point.y = terrain.height_at(point.x, point.z)
 			cells.append(cell)

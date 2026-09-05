@@ -1,11 +1,12 @@
 extends Node3D
 ## 置けるマスの見せ方。盤面そのもの（BuildGrid）は Level が持っている。
 ##
-## 100 マス近くを常に光らせると画面が読めなくなるので、**タワーを選んでいる間だけ**
-## 出す。選んでいないときは地形と道だけが見えている状態に戻す。
+## 置けるのは道沿いの 1 マスぶんだけなので、**盤面は常に出しておく**。
+## 数が絞られていて画面の邪魔にならず、出しっぱなしのほうが
+## 「どこに置けるか」を探さずに済む。カーソルの光だけがタワー選択に連動する。
 ##
 ## マスは MultiMesh で一度に描く。マスごとにノードを作るとステージを切り替える
-## たびに 100 個作り直すことになるうえ、当たり判定も要らない
+## たびに作り直すことになるうえ、当たり判定も要らない
 ## （クリック位置は地面との交点から割り出している）。
 
 ## マスの板の大きさ。マスいっぱいだと隣とくっついて格子に見えないので少し縮める。
@@ -33,7 +34,6 @@ func _ready() -> void:
 	_pads = MultiMeshInstance3D.new()
 	_pads.name = "Pads"
 	_pads.material_override = _make_material(COLOR_FREE)
-	_pads.visible = false
 	add_child(_pads)
 
 	_cursor_material = _make_material(COLOR_VALID)
@@ -48,13 +48,6 @@ func _ready() -> void:
 	if level != null:
 		_grid = level.grid
 	_rebuild_pads()
-
-
-## 置けるマスの表示を切り替える。タワーを選んだときだけ true。
-func set_cells_visible(value: bool) -> void:
-	_pads.visible = value
-	if not value:
-		_cursor.visible = false
 
 
 ## カーソルを 1 マスに合わせる。buildable が false なら赤く出す。
