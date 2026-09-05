@@ -7,6 +7,9 @@ extends Node3D
 ## 次に進む辺を選ぶ**（RouteGraph）。タワーに守られた区間はコストが高いので、
 ## 守りの薄い枝があればそちらへ回る。
 ##
+## 自軍の戦士に掴まれると足を止めて殴り合う。**掴めるのは 1 体につき 1 人**で、
+## 手が空いている戦士がいなければ素通りする。
+##
 ## 生成側 (WaveManager) が setup() でグラフと種別を渡してから add_child すること。
 
 ## 撃破された。引数は獲得ゴールド。
@@ -54,6 +57,9 @@ var _from_node: int = 0
 var _to_node: int = 0
 var _edge: int = -1
 var _travelled: float = 0.0
+## 足止めしてきた戦士。null なら前進中。
+var _blocker: Node = null
+var _attack_cooldown: float = 0.0
 
 
 ## グラフと種別を渡す。add_child より前に呼ぶこと。
@@ -80,6 +86,13 @@ func _physics_process(delta: float) -> void:
 	_update_slow(delta)
 	_update_hop(delta)
 	_update_flash(delta)
+
+	# 掴まれている間は進まない。相手が倒れたら勝手に解ける。
+	if _blocker != null and not is_instance_valid(_blocker):
+		_blocker = null
+	if _blocker != null:
+		_fight(delta)
+		return
 	_advance(data.speed * _slow_factor * delta)
 
 
@@ -133,6 +146,32 @@ func _place_on_edge(length: float) -> void:
 	if forward.length_squared() > 0.0001:
 		# 進む向きへ体を向ける。PathFollow3D の rotation_mode の代わり。
 		look_at(position + forward, Vector3.UP)
+
+
+## 手が空いている（まだ誰にも止められていない）か。
+func can_be_engaged() -> bool:
+	return not _finished and _blocker == null
+
+
+## 戦士が足止めを始める。すでに掴まれていたら false。
+func engage(warrior: Node) -> bool:
+	if not can_be_engaged():
+		return false
+	_blocker = warrior
+	return true
+
+
+## 掴んでいた戦士が倒れたときに呼ばれる。また歩き出す。
+func release() -> void:
+	_blocker = null
+
+
+func _fight(delta: float) -> void:
+	_attack_cooldown -= delta
+	if _attack_cooldown > 0.0:
+		return
+	_attack_cooldown = 1.0 / maxf(data.attack_rate, 0.01)
+	_blocker.call(&"take_damage", data.melee_damage)
 
 
 func take_damage(amount: int) -> void:
@@ -199,6 +238,8 @@ func _update_hop(delta: float) -> void:
 func _finish(reached_goal: bool) -> void:
 	_finished = true
 	remove_from_group(&"enemy")
+	# 掴まれたまま消えると、戦士が倒した相手を待ち続けてしまう。
+	_blocker = null
 	if data == null:
 		queue_free()
 		return

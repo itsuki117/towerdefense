@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="WarriorData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/warrior_data.gd" id="1_warrior_data"]
+
+[resource]
+script = ExtResource("1_warrior_data")
+display_name = "衛兵"
+cost = 40
+max_hp = 40
+damage = 5
+attack_rate = 1.2
+move_speed = 3.0
+engage_radius = 1.1
+body_color = Color(0.86, 0.8, 0.66, 1)

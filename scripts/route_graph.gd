@@ -152,6 +152,25 @@ func next_node(from: int, previous: int = -1) -> int:
 	return _pick_weighted(candidates, cheapest)
 
 
+## from からゴールと逆向きに進む節を選ぶ。自軍の戦士が前線へ出ていくのに使う。
+##
+## 「ゴールまでのコストが今より大きくなる隣」を選べば道を遡れる。
+## 候補が複数（分岐）あるときは等確率で選び、戦士が枝に散るようにする。
+## 敵の抽選と違って寄せる理由が無い（守りの薄い側へ行きたいのは敵のほう）。
+func next_node_away(from: int, previous: int = -1) -> int:
+	var here := cost_to_goal(from)
+	var candidates: Array = []
+	for link in _adjacency.get(from, []):
+		var neighbour := int(link[0])
+		if neighbour == previous:
+			continue
+		if cost_to_goal(neighbour) > here:
+			candidates.append(neighbour)
+	if candidates.is_empty():
+		return -1
+	return int(candidates[_rng.randi_range(0, candidates.size() - 1)])
+
+
 ## コストが安い枝ほど重い抽選。重みは (最安 / その枝) ^ BRANCH_SHARPNESS。
 ##
 ## 比で見るので、道の長さが変わっても偏り方は変わらない。

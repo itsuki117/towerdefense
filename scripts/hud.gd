@@ -1,14 +1,19 @@
 extends Control
-## ゴールド / ライフ / ウェーブの表示と、タワー選択・ウェーブ開始ボタン。
+## ゴールド / ライフ / ウェーブの表示と、タワー選択・戦士雇用・ウェーブ開始ボタン。
 ##
 ## 表示は GameState の signal を購読するだけで、こちらから状態を書き換えない。
-## ボタンは tower_options の TowerData から生成するので、タワーが増えたら
-## 配列に .tres を足すだけでよい（ステップ6の 2 種類目もこれで済む）。
+## ボタンは .tres の配列から生成するので、種類が増えたら配列に足すだけでよい。
+##
+## タワーは「選んでから盤面をクリック」なのでトグル、戦士は押した時点で
+## 雇い終わるので普通のボタン、と押し心地を分けてある。
 
 ## TowerData の配列。
 @export var tower_options: Array = []
+## WarriorData の配列。
+@export var warrior_options: Array = []
 @export var build_manager_path: NodePath
 @export var wave_manager_path: NodePath
+@export var warrior_manager_path: NodePath
 
 @onready var _gold_label: Label = $Stats/GoldLabel
 @onready var _lives_label: Label = $Stats/LivesLabel
@@ -18,8 +23,11 @@ extends Control
 
 var _build_manager: BuildManager = null
 var _wave_manager: WaveManager = null
+var _warrior_manager: WarriorManager = null
 ## Button -> TowerData
 var _buttons: Dictionary = {}
+## Button -> WarriorData
+var _warrior_buttons: Dictionary = {}
 
 
 func _ready() -> void:
@@ -31,7 +39,10 @@ func _ready() -> void:
 	if _wave_manager == null:
 		push_error("HUD: wave_manager_path に WaveManager を指定してください")
 
+	_warrior_manager = get_node_or_null(warrior_manager_path) as WarriorManager
+
 	_create_tower_buttons()
+	_create_warrior_buttons()
 
 	GameState.gold_changed.connect(_on_gold_changed)
 	GameState.lives_changed.connect(_on_lives_changed)
@@ -66,6 +77,31 @@ func _create_tower_buttons() -> void:
 		button.toggled.connect(_on_tower_button_toggled.bind(button))
 		_tower_bar.add_child(button)
 		_buttons[button] = data
+
+
+## 戦士は置く場所を選ばないので、押した時点で雇い終わる（トグルにしない）。
+func _create_warrior_buttons() -> void:
+	for option in warrior_options:
+		var data := option as WarriorData
+		if data == null:
+			continue
+		var button := Button.new()
+		button.focus_mode = Control.FOCUS_NONE
+		button.custom_minimum_size = Vector2(190, 56)
+		button.text = "%s   %d G" % [data.display_name, data.cost]
+		button.tooltip_text = "HP %d ／ ダメージ %d ／ %.1f 回/秒　拠点から出て道を塞ぐ" % [
+			data.max_hp, data.damage, data.attack_rate,
+		]
+		button.pressed.connect(_on_warrior_button_pressed.bind(data))
+		_tower_bar.add_child(button)
+		_warrior_buttons[button] = data
+
+
+func _on_warrior_button_pressed(data: WarriorData) -> void:
+	if _warrior_manager != null:
+		_warrior_manager.hire(data)
+	# 人数がいっぱいになった／ゴールドが減った結果を押し心地へ返す。
+	_refresh_buttons(GameState.gold)
 
 
 func _on_tower_button_toggled(pressed: bool, button: Button) -> void:
@@ -126,3 +162,10 @@ func _refresh_buttons(current_gold: int) -> void:
 			button.set_pressed_no_signal(false)
 			if _build_manager != null and _build_manager.get_selected() == data:
 				_build_manager.clear_selection()
+
+	# 戦士は買えないときに加えて、人数がいっぱいのときも押せなくする。
+	var full := _warrior_manager != null and _warrior_manager.is_full()
+	for key in _warrior_buttons:
+		var button := key as Button
+		var data := _warrior_buttons[key] as WarriorData
+		button.disabled = full or current_gold < data.cost

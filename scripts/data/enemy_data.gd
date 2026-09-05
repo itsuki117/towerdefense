@@ -14,5 +14,9 @@ extends Resource
 @export var gold_value: int = 5
 ## 拠点に到達されたときに減るライフ。
 @export var damage: int = 1
+## 足止めしてきた戦士に与えるダメージ。
+@export var melee_damage: int = 4
+## 戦士への攻撃レート (回/秒)。
+@export_range(0.1, 5.0, 0.1) var attack_rate: float = 1.0
 @export var body_color: Color = Color(0.35, 0.75, 0.4)
 @export_range(0.1, 2.0, 0.05) var body_scale: float = 1.0

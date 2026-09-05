@@ -23,7 +23,9 @@ func _ready() -> void:
 	GameState.gold = 9999
 	var manager: BuildManager = main.get_node(^"BuildManager")
 	# A* の確認は「何も建っていない状態」から始めたいので、既定の設置は飛ばす。
-	if not "astar" in OS.get_cmdline_user_args():
+	# A* と戦士の確認はタワー抜きで見たい（敵が着く前に溶けてしまうため）。
+	var bare := "astar" in OS.get_cmdline_user_args() or "warrior" in OS.get_cmdline_user_args()
+	if not bare:
 		_build_preview_towers(main, manager)
 	manager.clear_selection()
 
@@ -40,6 +42,8 @@ func _ready() -> void:
 		_check_astar(main)
 	if "grid" in OS.get_cmdline_user_args():
 		await _show_grid(main, manager)
+	if "warrior" in OS.get_cmdline_user_args():
+		await _check_warriors(main)
 
 	_report_stage(main)
 	# `-- stage3` のように番号を付けると、そのステージに着くまで進める。
@@ -241,3 +245,27 @@ func _show_grid(main: Node, manager: BuildManager) -> void:
 	manager.set_physics_process(false)
 	level.get_node(^"BuildGridView").set_cursor(free[0], true)
 
+
+
+## 戦士が拠点から出て、敵を足止めするかを確かめる。
+func _check_warriors(main: Node) -> void:
+	var manager: WarriorManager = main.get_node(^"WarriorManager")
+	var waves: WaveManager = main.get_node(^"WaveManager")
+	var data := load("res://resources/warriors/warrior_guard.tres")
+	for i in 3:
+		manager.hire(data)
+	print("VisPreview: 雇用 %d 人 / 上限 %d / 所持 %d" % [
+		manager.alive_count(), manager.max_alive, GameState.gold,
+	])
+	waves.request_next_wave()
+
+	for step in 3:
+		await get_tree().create_timer(5.0).timeout
+		var enemies := get_tree().get_nodes_in_group(&"enemy")
+		var blocked := 0
+		for node in enemies:
+			if not (node as Enemy).can_be_engaged():
+				blocked += 1
+		print("VisPreview: %2d 秒 戦士 %d 人 / 敵 %d 体（足止め %d）/ ライフ %d" % [
+			(step + 1) * 5, manager.alive_count(), enemies.size(), blocked, GameState.lives,
+		])
