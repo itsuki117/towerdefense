@@ -4,12 +4,14 @@
 
     python tools/make_stages.py
 
-道と設置マスは座標の塊なので、手で .tres を書くと必ず数字を間違える。
+道は座標の塊なので、手で .tres を書くと必ず数字を間違える。
 ここで一度に組み立てて、**書き出す前に必ず検算する**:
 
-- 設置マスが道に近すぎないか（近いと石の土台が道に食い込む）
-- 設置マス同士が重なっていないか
-- 節も設置マスも高台（プラトー）の内側に収まっているか
+- 節が高台（プラトー）の内側に収まっているか
+- 辺が短すぎないか（節が重なっていると道のリボンが破綻する）
+
+タワーを置けるマスは地形と道から実行時に割り出すので（BuildGrid）、
+ここでは道だけを決める。
 
 検算に落ちたら書き出さずに止まる。座標をいじったらこのスクリプトを回す。
 
@@ -24,12 +26,8 @@ import os
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STAGE_DIR = os.path.join(ROOT, "resources", "stages")
 
-## 設置マスを道の中心線から空ける最小距離。
-## 道の半幅 1.05 ＋ 土台の半径 0.8 = 1.85。v1.0 で実際に使っていた最小値が
-## 2.0 で見た目に問題が無かったので、それをそのまま下限にしている。
-MIN_ROAD_CLEARANCE = 2.0
-## 設置マス同士の最小距離。
-MIN_SPOT_GAP = 2.5
+## 辺の最小の長さ。これより短いと道のリボンが破綻する。
+MIN_EDGE_LENGTH = 2.0
 ## 高台の範囲（Terrain の plateau_center / plateau_extents に合わせる）。
 ## 輪郭はノイズで揺れるので、公称値から少し内側を有効範囲とする。
 PLATEAU_CENTER = (-1.0, 1.0)
@@ -51,10 +49,6 @@ STAGES = [
         # v1.0 と同じ道。既存のバランス基準（タワー3本→波5敗北）を
         # そのまま生かすため、1 面目だけは形を変えない。
         "nodes": [(-11, -9), (-3, -9), (-3, 0), (6, 0), (6, 8), (0, 8)],
-        "spots": [
-            (-8.5, -7), (-5.5, -6.6), (-5.2, -3), (-1, -6), (-1, -2.2),
-            (2.2, -2.4), (2.2, 2.4), (8.6, 3.6), (3.6, 4.6), (2.4, 10.4),
-        ],
         "waves": [1, 2, 3, 4, 5, 6, 7, 8],
         "lives": 20,
         "reward": 80,
@@ -64,10 +58,6 @@ STAGES = [
         "name": "ステージ 2 — 回り込む道",
         # 絵の 2 枚目。外周をぐるりと回してからクリスタルへ入る。
         "nodes": [(-12, -9), (-3, -9), (-3, -2), (8, -2), (8, 6), (0, 6), (0, 8)],
-        "spots": [
-            (-9, -6.5), (-6, -6.5), (-0.5, -6), (-6.2, -2.6), (2, -5), (5.5, -5),
-            (5, 1), (10.4, 2), (2.8, 3.4), (-3.5, 6), (3.5, 8.6), (8, 9),
-        ],
         "waves": [5, 6, 7, 8],
         "lives": 20,
         "reward": 110,
@@ -92,12 +82,6 @@ STAGES = [
             (4, 6), (6, 7),
         ],
         "goal": 7,
-        "spots": [
-            (-8, -6), (-1, -6), (2, -6),
-            (-11, -1), (-8, 0), (-8, 3),
-            (-1, 0.5), (2.5, 0.5),
-            (8, 0), (8.5, 5), (2.5, 6), (-3, 7),
-        ],
         "waves": [5, 6, 7, 8],
         "lives": 20,
         "reward": 140,
@@ -144,19 +128,9 @@ def verify(stage):
         if not _inside_plateau(point):
             problems.append("節 %s が高台からはみ出している" % (point,))
 
-    for spot in stage["spots"]:
-        if not _inside_plateau(spot):
-            problems.append("設置マス %s が高台からはみ出している" % (spot,))
-        nearest = min(_distance_to_segment(spot, a, b) for a, b in segments)
-        if nearest < MIN_ROAD_CLEARANCE:
-            problems.append("設置マス %s が道に近すぎる (%.2f < %.2f)"
-                            % (spot, nearest, MIN_ROAD_CLEARANCE))
-
-    for i, first in enumerate(stage["spots"]):
-        for second in stage["spots"][i + 1:]:
-            gap = math.hypot(first[0] - second[0], first[1] - second[1])
-            if gap < MIN_SPOT_GAP:
-                problems.append("設置マス %s と %s が近すぎる (%.2f)" % (first, second, gap))
+    for a, b in segments:
+        if math.hypot(b[0] - a[0], b[1] - a[1]) < MIN_EDGE_LENGTH:
+            problems.append("辺 %s-%s が短すぎる" % (a, b))
     return problems
 
 
@@ -193,7 +167,6 @@ def stage_text(stage):
             '[ext_resource type="Resource" path="res://resources/waves/wave_%02d.tres" id="%d_wave"]'
             % (number, index + 3)
         )
-    spots = ", ".join("%g, 0, %g" % (x, z) for x, z in stage["spots"])
     wave_refs = ", ".join('ExtResource("%d_wave")' % (i + 3) for i in range(len(waves)))
     lines += [
         '',
@@ -201,7 +174,6 @@ def stage_text(stage):
         'script = ExtResource("1_stage_data")',
         'display_name = "%s"' % stage["name"],
         'route = ExtResource("2_route")',
-        'build_spots = PackedVector3Array(%s)' % spots,
         'waves = [%s]' % wave_refs,
         'lives = %d' % stage["lives"],
         'clear_reward = %d' % stage["reward"],
@@ -236,8 +208,8 @@ def build():
         length = sum(
             math.hypot(nodes[b][0] - nodes[a][0], nodes[b][1] - nodes[a][1]) for a, b in edges
         )
-        print("%-10s 節 %2d / 辺 %2d / マス %2d / 全長 %5.1f  %s"
-              % (stage["file"], len(nodes), len(edges), len(stage["spots"]), length,
+        print("%-10s 節 %2d / 辺 %2d / 全長 %5.1f  %s"
+              % (stage["file"], len(nodes), len(edges), length,
                  "OK" if not problems else "NG"))
         for problem in problems:
             print("    - " + problem)

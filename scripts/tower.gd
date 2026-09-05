@@ -10,6 +10,9 @@ const CLICK_LAYER := 8
 ## クリック判定の大きさ。タワーの土台から砲塔までをざっくり覆う。
 const CLICK_RADIUS := 0.75
 const CLICK_HEIGHT := 1.7
+## 足元に敷く石の土台。
+const PAD_SIZE := Vector3(0.82, 0.16, 0.82)
+const PAD_COLOR := Color(0.34, 0.32, 0.3)
 
 @export var data: TowerData
 @export var projectile_scene: PackedScene
@@ -41,6 +44,7 @@ func _ready() -> void:
 
 	_apply_visual()
 	_add_click_area()
+	_add_ground_pad()
 
 
 func _physics_process(_delta: float) -> void:
@@ -121,6 +125,20 @@ func _shoot(target: Enemy) -> void:
 func _projectile_parent() -> Node:
 	var container := get_tree().get_first_node_in_group(&"projectile_container")
 	return container if container != null else get_parent()
+
+
+## 足元の石の土台。
+##
+## グリッドに置くようになって、地面の起伏の上に直接建つようになった。
+## 土台を敷くと足元の傾きが目立たなくなり、置いた場所も読み取りやすい。
+func _add_ground_pad() -> void:
+	var pad := MeshInstance3D.new()
+	pad.name = "GroundPad"
+	pad.mesh = LowPoly.blob(PAD_SIZE, PAD_COLOR, 0.12)
+	pad.position.y = -PAD_SIZE.y * 0.5
+	# 傾いた地面に少し埋まるので、影は落とさないほうが締まって見える。
+	pad.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(pad)
 
 
 ## カメラが「どのタワーがクリックされたか」を知るための当たり判定。

@@ -7,13 +7,12 @@ extends Node
 ## 通常の起動と同じ経路なので Autoload も効く（--script と違ってコンパイル順の
 ## 罠が無い）。撮影用なので本編のシーンには一切手を入れないこと。
 
-## 「マス名 : TowerData」の組。撮影したい構図に合わせて足し引きする。
-const PLAN := {
-	"BuildSpot2": "res://resources/towers/tower_arrow.tres",
-	"BuildSpot4": "res://resources/towers/tower_frost.tres",
-	"BuildSpot7": "res://resources/towers/tower_arrow.tres",
-	"BuildSpot9": "res://resources/towers/tower_frost.tres",
-}
+const ARROW := "res://resources/towers/tower_arrow.tres"
+const FROST := "res://resources/towers/tower_frost.tres"
+## 撮影用に建てる本数と、何本に 1 本を減速砲にするか。
+## 盤面は道に近い順に並んでいるので、上から順に建てれば道沿いに散らばる。
+const PREVIEW_TOWERS := 6
+const PREVIEW_FROST_EVERY := 3
 
 
 func _ready() -> void:
@@ -24,14 +23,8 @@ func _ready() -> void:
 	GameState.gold = 9999
 	var manager: BuildManager = main.get_node(^"BuildManager")
 	# A* の確認は「何も建っていない状態」から始めたいので、既定の設置は飛ばす。
-	var plan: Dictionary = {} if "astar" in OS.get_cmdline_user_args() else PLAN
-	for spot_name in plan:
-		var spot := main.get_node_or_null(NodePath("Level/BuildSpots/%s" % spot_name)) as BuildSpot
-		if spot == null:
-			push_warning("VisPreview: マスが見つからない: %s" % spot_name)
-			continue
-		manager.select_tower(load(plan[spot_name]))
-		manager._try_build(spot)
+	if not "astar" in OS.get_cmdline_user_args():
+		_build_preview_towers(main, manager)
 	manager.clear_selection()
 
 	# `godot ... res://tools/vis_preview.tscn -- focus` で寄りの絵を撮る。
@@ -45,6 +38,8 @@ func _ready() -> void:
 		_show_bursts(main)
 	if "astar" in OS.get_cmdline_user_args():
 		_check_astar(main)
+	if "grid" in OS.get_cmdline_user_args():
+		await _show_grid(main, manager)
 
 	_report_stage(main)
 	# `-- stage3` のように番号を付けると、そのステージに着くまで進める。
@@ -66,13 +61,29 @@ func _check_astar(main: Node) -> void:
 		return
 
 	_report_split(graph, "なにも建てない")
-	_build_spots(main, ["BuildSpot5", "BuildSpot6"])
+	_build_branch_towers(main, 3)
 	_report_split(graph, "枝Aだけ守る")
-	_build_spots(main, [
-		"BuildSpot1", "BuildSpot2", "BuildSpot3", "BuildSpot4", "BuildSpot7",
-		"BuildSpot8", "BuildSpot9", "BuildSpot10", "BuildSpot11", "BuildSpot12",
-	])
-	_report_split(graph, "全部のマスに建てる")
+	_build_cells(main, 60)
+	_report_split(graph, "置けるだけ建てる")
+
+
+## 枝 A（節 3 と 4 を結ぶあたり）の近くにだけ建てる。
+func _build_branch_towers(main: Node, count: int) -> void:
+	var manager: BuildManager = main.get_node(^"BuildManager")
+	var level: Level = main.get_node(^"Level")
+	var graph := level.graph
+	var edge := graph.edge_between(2, 3)
+	var built := 0
+	for cell in level.grid.free_cells():
+		if built >= count:
+			break
+		var point := level.grid.placement_of(cell)
+		if graph.covered_length(edge, point, 6.0) < 3.0:
+			continue
+		manager.select_tower(load(ARROW))
+		if manager.build_at(cell):
+			built += 1
+	manager.clear_selection()
 
 
 ## 分岐点で 400 回抽選して、どちらの枝へ何割行くかを出す。
@@ -95,15 +106,21 @@ func _report_split(graph: RouteGraph, label: String) -> void:
 	])
 
 
-func _build_spots(main: Node, names: Array) -> void:
+## 道に近いマスから順に建てる。撮影でも A* の確認でも使う。
+func _build_cells(main: Node, count: int, frost_every: int = 0, skip: int = 0) -> void:
 	var manager: BuildManager = main.get_node(^"BuildManager")
-	var data := load("res://resources/towers/tower_arrow.tres")
-	for spot_name in names:
-		var spot := main.get_node_or_null(NodePath("Level/BuildSpots/%s" % spot_name)) as BuildSpot
-		if spot == null:
+	var level: Level = main.get_node(^"Level")
+	var cells := level.grid.free_cells()
+	var built := 0
+	for i in cells.size():
+		if built >= count:
+			break
+		if i < skip:
 			continue
-		manager.select_tower(data)
-		manager._try_build(spot)
+		var use_frost := frost_every > 0 and built % frost_every == frost_every - 1
+		manager.select_tower(load(FROST if use_frost else ARROW))
+		if manager.build_at(cells[i]):
+			built += 1
 	manager.clear_selection()
 
 
@@ -121,11 +138,10 @@ func _target_stage() -> int:
 ## 作り直されているかは、節とマスの数を見れば分かる。
 func _report_stage(main: Node) -> void:
 	var level: Level = main.get_node(^"Level")
-	var spots := main.get_node(^"Level/BuildSpots")
-	print("VisPreview: ステージ %d「%s」節=%d 辺=%d マス=%d 所持=%d ライフ=%d" % [
+	print("VisPreview: ステージ %d「%s」節=%d 辺=%d 置けるマス=%d 所持=%d ライフ=%d" % [
 		GameState.stage_number(), GameState.current_stage().display_name,
 		level.graph.node_count(), level.graph.route.edges.size(),
-		spots.get_child_count(), GameState.gold, GameState.lives,
+		level.grid.cells.size(), GameState.gold, GameState.lives,
 	])
 
 
@@ -196,3 +212,32 @@ func _click_tower(main: Node) -> void:
 	# 入力はフレームの頭で処理されるので、1 フレーム待たないと結果が読めない。
 	await get_tree().process_frame
 	print("VisPreview: クリック位置=%v 寄っているか=%s" % [screen, camera.call(&"is_focused")])
+
+
+func _build_preview_towers(main: Node, _manager: BuildManager) -> void:
+	_build_cells(main, PREVIEW_TOWERS, PREVIEW_FROST_EVERY)
+
+
+## タワーを選んだ状態にして、マウスを 1 マスに乗せる。
+## 盤面の見え方（置けるマスとカーソル）を撮るためのモード。
+func _show_grid(main: Node, manager: BuildManager) -> void:
+	var level: Level = main.get_node(^"Level")
+	var camera: Camera3D = main.get_node(^"Camera3D")
+	manager.select_tower(load(ARROW))
+	var free := level.grid.free_cells()
+	if free.is_empty():
+		return
+	# 道沿いの空きマスにカーソルを合わせる（先頭は道にいちばん近いマス）。
+	var target := camera.unproject_position(level.grid.placement_of(free[0]))
+	Input.warp_mouse(target)
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	print("VisPreview: 盤面 置ける=%d 空き=%d / カーソル狙い=%v 実際=%v 乗っている=%s" % [
+		level.grid.cells.size(), free.size(), target,
+		manager.get_viewport().get_mouse_position(), manager._has_hover,
+	])
+	# 撮影中は OS 側のカーソルが戻ってきて hover が外れることがあるので、
+	# 当たり判定の更新を止めてカーソルを固定する。
+	manager.set_physics_process(false)
+	level.get_node(^"BuildGridView").set_cursor(free[0], true)
+

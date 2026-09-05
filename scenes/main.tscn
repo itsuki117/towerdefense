@@ -5,6 +5,7 @@
 [ext_resource type="Script" path="res://scripts/prop_scatter.gd" id="21_prop_scatter"]
 [ext_resource type="Script" path="res://scripts/base_crystal.gd" id="22_base_crystal"]
 [ext_resource type="Script" path="res://scripts/level.gd" id="23_level"]
+[ext_resource type="Script" path="res://scripts/build_grid_view.gd" id="25_build_grid_view"]
 [ext_resource type="Script" path="res://scripts/interval_screen.gd" id="24_interval_screen"]
 [ext_resource type="Script" uid="uid://b4ol4218moxot" path="res://scripts/wave_manager.gd" id="2_wave_manager"]
 [ext_resource type="Script" uid="uid://b8lrcfllh0v23" path="res://scripts/hud.gd" id="3_hud"]
@@ -12,7 +13,6 @@
 [ext_resource type="PackedScene" path="res://scenes/tower.tscn" id="5_tower"]
 [ext_resource type="Resource" path="res://resources/towers/tower_arrow.tres" id="6_tower_arrow"]
 [ext_resource type="Script" uid="uid://v5vi8hj3uv3o" path="res://scripts/build_manager.gd" id="15_build_manager"]
-[ext_resource type="PackedScene" path="res://scenes/build_spot.tscn" id="16_build_spot"]
 [ext_resource type="Script" path="res://scripts/result_screen.gd" id="17_result_screen"]
 [ext_resource type="Script" path="res://scripts/camera_rig.gd" id="18_camera_rig"]
 [ext_resource type="Resource" path="res://resources/towers/tower_frost.tres" id="19_tower_frost"]
@@ -85,7 +85,6 @@ look_at_target = Vector3(-1, 0, 1)
 
 [node name="Level" type="Node3D" parent="." unique_id=58941780]
 script = ExtResource("23_level")
-build_spot_scene = ExtResource("16_build_spot")
 
 [node name="Ground" type="MeshInstance3D" parent="Level" unique_id=1472985511]
 script = ExtResource("20_terrain")
@@ -96,7 +95,8 @@ script = ExtResource("1_road_visual")
 [node name="Base" type="Node3D" parent="Level" unique_id=684710614]
 script = ExtResource("22_base_crystal")
 
-[node name="BuildSpots" type="Node3D" parent="Level" unique_id=990039240]
+[node name="BuildGridView" type="Node3D" parent="Level"]
+script = ExtResource("25_build_grid_view")
 
 [node name="Props" type="Node3D" parent="Level"]
 

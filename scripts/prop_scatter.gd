@@ -31,8 +31,6 @@ enum Region {
 @export var min_spacing: float = 1.4
 ## 道の中心線から空ける距離。
 @export var path_clearance: float = 1.9
-## 設置マスの中心から空ける距離。
-@export var spot_clearance: float = 1.9
 ## ROADSIDE のとき、道の中心線からこの範囲（最小, 最大）に置く。
 @export var road_band := Vector2(1.15, 1.6)
 ## ばら撒く範囲（中心からの距離）。0 なら region ごとの既定値を使う。
@@ -43,7 +41,6 @@ enum Region {
 @export_group("参照")
 @export var terrain_path: NodePath = ^"../../Ground"
 @export var level_path: NodePath = ^"../.."
-@export var build_spots_path: NodePath = ^"../../BuildSpots"
 ## この位置の周りは空けておく（拠点クリスタルなど）。
 @export var keep_out_points: Array[Vector3] = []
 @export var keep_out_radius: float = 2.5
@@ -52,30 +49,54 @@ enum Region {
 const MAX_ATTEMPTS_PER_PROP := 30
 
 var _rng := RandomNumberGenerator.new()
+## 置いた小物の姿勢。タワーを建てたときに一部を取り除いて張り直すので持っておく。
+var _placed: Array[Transform3D] = []
 
 
 func _ready() -> void:
+	add_to_group(&"prop_scatter")
 	_rng.seed = rng_seed
 	var terrain := get_node_or_null(terrain_path)
 	if terrain == null or not terrain.has_method(&"height_at"):
 		push_warning("PropScatter: terrain_path が Terrain を指していません")
 		return
 
-	var placed := _pick_positions(terrain)
-	var mm := MultiMesh.new()
-	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = _build_mesh()
-	mm.instance_count = placed.size()
-	for i in placed.size():
+	for point in _pick_positions(terrain):
 		var basis := Basis(Vector3.UP, _rng.randf_range(0.0, TAU))
 		basis = basis.scaled(Vector3.ONE * _rng.randf_range(scale_range.x, scale_range.y))
-		mm.set_instance_transform(i, Transform3D(basis, placed[i]))
+		_placed.append(Transform3D(basis, point))
+	_refresh()
+
+
+## タワーを建てた場所の小物をどける。
+##
+## 盤面がグリッドになって「どこにでも建つ」ようになったので、置ける場所から
+## 小物を避けておくことができない（避けると高台から小物が消える）。
+## 建てたときにその場を片付けるほうが、地面をならして建てたようにも見える。
+func clear_around(center: Vector3, radius: float) -> void:
+	var kept: Array[Transform3D] = []
+	var flat := Vector2(center.x, center.z)
+	for transform in _placed:
+		if flat.distance_to(Vector2(transform.origin.x, transform.origin.z)) > radius:
+			kept.append(transform)
+	if kept.size() == _placed.size():
+		return
+	_placed = kept
+	_refresh()
+
+
+func _refresh() -> void:
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = multimesh.mesh if multimesh != null else _build_mesh()
+	mm.instance_count = _placed.size()
+	for i in _placed.size():
+		mm.set_instance_transform(i, _placed[i])
 	multimesh = mm
 
 
 func _pick_positions(terrain: Node) -> Array[Vector3]:
 	var road := _road_points()
-	var spots := _spot_points()
 	var half := spread if spread > 0.0 else (30.0 if region == Region.FIELD else 15.0)
 
 	var placed: Array[Vector3] = []
@@ -83,7 +104,7 @@ func _pick_positions(terrain: Node) -> Array[Vector3]:
 		for _attempt in MAX_ATTEMPTS_PER_PROP:
 			var x := _rng.randf_range(-half, half)
 			var z := _rng.randf_range(-half, half)
-			if not _is_allowed(terrain, road, spots, placed, x, z):
+			if not _is_allowed(terrain, road, placed, x, z):
 				continue
 			placed.append(Vector3(x, terrain.height_at(x, z), z))
 			break
@@ -91,12 +112,7 @@ func _pick_positions(terrain: Node) -> Array[Vector3]:
 
 
 func _is_allowed(
-	terrain: Node,
-	road: PackedVector2Array,
-	spots: PackedVector2Array,
-	placed: Array[Vector3],
-	x: float,
-	z: float
+	terrain: Node, road: PackedVector2Array, placed: Array[Vector3], x: float, z: float
 ) -> bool:
 	var distance: float = terrain.plateau_distance_at(x, z)
 	if region == Region.FIELD:
@@ -121,15 +137,8 @@ func _is_allowed(
 		nearest_road = minf(nearest_road, point.distance_squared_to(road_point))
 	nearest_road = sqrt(nearest_road)
 	if region == Region.ROADSIDE:
-		if nearest_road < road_band.x or nearest_road > road_band.y:
-			return false
-	elif nearest_road < path_clearance:
-		return false
-
-	for spot in spots:
-		if point.distance_to(spot) < spot_clearance:
-			return false
-	return true
+		return nearest_road >= road_band.x and nearest_road <= road_band.y
+	return nearest_road >= path_clearance
 
 
 ## 道の中心線を一定間隔で点にしたもの。距離判定はこの点との距離で足りる。
@@ -140,18 +149,6 @@ func _road_points() -> PackedVector2Array:
 		return points
 	for point in level.road_points(0.5):
 		points.append(Vector2(point.x, point.z))
-	return points
-
-
-func _spot_points() -> PackedVector2Array:
-	var points := PackedVector2Array()
-	var spots := get_node_or_null(build_spots_path)
-	if spots == null:
-		return points
-	for child in spots.get_children():
-		var node3d := child as Node3D
-		if node3d != null:
-			points.append(Vector2(node3d.position.x, node3d.position.z))
 	return points
 
 

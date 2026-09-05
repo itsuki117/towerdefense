@@ -12,7 +12,6 @@
 script = ExtResource("1_stage_data")
 display_name = "ステージ 3 — 分かれ道"
 route = ExtResource("2_route")
-build_spots = PackedVector3Array(-8, 0, -6, -1, 0, -6, 2, 0, -6, -11, 0, -1, -8, 0, 0, -8, 0, 3, -1, 0, 0.5, 2.5, 0, 0.5, 8, 0, 0, 8.5, 0, 5, 2.5, 0, 6, -3, 0, 7)
 waves = [ExtResource("3_wave"), ExtResource("4_wave"), ExtResource("5_wave"), ExtResource("6_wave")]
 lives = 20
 clear_reward = 140

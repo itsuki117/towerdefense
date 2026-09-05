@@ -30,6 +30,7 @@ var _max_towers := 99
 var _frost_every := 3
 var _game_state: Node = null
 var _manager: Node = null
+var _level: Node = null
 var _spots: Array = []
 var _built := 0
 ## ステージを守り切ったか。次のステージがある場合は勝敗が付かないので、
@@ -56,6 +57,7 @@ func _initialize() -> void:
 
 	_game_state = root.get_node_or_null(^"GameState")
 	_manager = root.get_node_or_null(^"Main/BuildManager")
+	_level = root.get_node_or_null(^"Main/Level")
 	_game_state.stage_cleared.connect(_on_stage_cleared)
 
 	print("=== SIM START (towers<=%d, stage=%d) ===" % [_max_towers, _game_state.stage + 1])
@@ -87,11 +89,10 @@ func _on_stage_cleared(_stage_number: int, _reward: int) -> void:
 	_stage_cleared = true
 
 
-## 設置マスはステージのデータから毎回作られるので、シーンを読んだ直後ではなく
-## 使う直前に集める。_initialize の時点では、まだ並んでいないことがある。
+## 空いているマスを集める。盤面は道に近い順に並んでいるので、
+## 上から順に建てるだけで「射程が道に届く置き方」になる。
 func _collect_spots() -> void:
-	var holder := root.get_node_or_null(^"Main/Level/BuildSpots")
-	_spots = holder.get_children() if holder != null else []
+	_spots = _level.grid.free_cells() if _level != null and _level.grid != null else []
 
 
 ## 空きマスがあり、買えるなら 1 本建てる。
@@ -104,15 +105,15 @@ func _try_build_one() -> void:
 	var data := load(FROST if use_frost else ARROW)
 	if _game_state.gold < data.cost:
 		return
-	for spot in _spots:
-		if spot.call(&"is_occupied"):
+	_manager.call(&"select_tower", data)
+	for cell in _spots:
+		if not _manager.call(&"build_at", cell):
 			continue
-		_manager.call(&"select_tower", data)
-		_manager.call(&"_try_build", spot)
 		_built += 1
 		print("[%6.1fs] wave %d: %s を建てた (%d 本目, 残り %d G)" % [
 			_elapsed, _game_state.wave, data.display_name, _built, _game_state.gold,
 		])
+		_collect_spots()
 		return
 
 
@@ -129,7 +130,7 @@ func _report(outcome: String) -> void:
 	print("残りライフ   = %d / %d" % [
 		_game_state.lives, stage.lives if stage != null else 0,
 	])
-	print("設置マス数   = %d" % _spots.size())
+	print("空きマス数   = %d" % _spots.size())
 	print("建てた本数   = %d" % _built)
 	print("所持ゴールド = %d" % _game_state.gold)
 	print("同時に出た敵の最大数 = %d" % _peak_enemies)

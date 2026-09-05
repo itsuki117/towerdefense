@@ -50,13 +50,13 @@ extends MeshInstance3D
 @export var snow_line: float = 6.0
 
 @export_group("平らに均す場所")
-## 道と設置マスの周りは起伏を消す。道もタワーも y=0 に置かれているので、
-## ここが波打っていると地面から浮いたり埋まったりして見える。
+## 道の周りは起伏を消す。道は地面に貼り付く板なので、下が波打っていると
+## 埋まったり浮いたりして見える。
+## タワーはマスごとに地面の高さへ乗せるので、均す必要は無い。
 @export var flatten_radius: float = 1.9
 ## 均した所から起伏に戻るまでの幅。
 @export var flatten_falloff: float = 1.8
 @export var level_path: NodePath = ^".."
-@export var build_spots_path: NodePath = ^"../BuildSpots"
 
 @export_group("色")
 @export var grass_color := Color(0.18, 0.29, 0.17)
@@ -283,7 +283,7 @@ func _jitter_at(ix: int, iz: int, salt: float) -> float:
 	return (value - floor(value)) * 2.0 - 1.0
 
 
-## 道と設置マスの中心を集める。均す判定はこの点との距離だけで足りる。
+## 道の中心線を集める。均す判定はこの点との距離だけで足りる。
 func _collect_flatten_points() -> void:
 	_flatten_points = PackedVector2Array()
 	# エディタでは Level（@tool ではない）のメソッドを呼べず、そもそも走らせる
@@ -294,12 +294,6 @@ func _collect_flatten_points() -> void:
 	if level != null and level.has_method(&"road_points"):
 		for point in level.road_points():
 			_flatten_points.append(Vector2(point.x, point.z))
-	var spots := get_node_or_null(build_spots_path)
-	if spots != null:
-		for child in spots.get_children():
-			var node3d := child as Node3D
-			if node3d != null:
-				_flatten_points.append(Vector2(node3d.position.x, node3d.position.z))
 
 
 ## 1.0 なら完全に平ら、0.0 なら起伏そのまま。

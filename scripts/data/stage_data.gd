@@ -10,9 +10,8 @@ extends Resource
 
 @export var display_name: String = "ステージ"
 ## 敵が通る道。
+## 置けるマスはこの道と地形から機械的に割り出すので、座標は持たない (BuildGrid)。
 @export var route: RouteData
-## タワーを置けるマスの位置。道に沿って置くので道と一組で持つ。
-@export var build_spots: PackedVector3Array = PackedVector3Array()
 ## WaveData の配列。型付き配列にしないのは WaveData.entries と同じ理由。
 @export var waves: Array = []
 ## このステージの開始ライフ。ステージごとに仕切り直す。
