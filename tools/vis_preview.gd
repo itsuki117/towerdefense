@@ -53,38 +53,58 @@ func _ready() -> void:
 		await _advance_stage(main)
 
 
-## 分かれ道で A* が枝を選び直すかを確かめる。
+## 分かれ道で敵の流れがどう分かれるかを確かめる。
 ##
-## ステージ 3 は 2 本の枝が同じ長さなので、何も建っていなければどちらでもよい。
-## 片方だけをタワーで守ると、そちらのコストが上がってもう片方が選ばれるはず。
+## ステージ 3 は 2 本の枝が同じ長さなので、何も建っていなければ五分五分のはず。
+## 片方だけを守れば守っていないほうへ寄り、全部守れば元の五分五分へ戻る
+## （どちらも同じだけ守られているので）。
 func _check_astar(main: Node) -> void:
 	var level: Level = main.get_node(^"Level")
 	var graph := level.graph
 	if graph == null or graph.route.edges.size() < 8:
 		print("VisPreview: 分岐のあるステージではありません")
 		return
+
+	_report_split(graph, "なにも建てない")
+	_build_spots(main, ["BuildSpot5", "BuildSpot6"])
+	_report_split(graph, "枝Aだけ守る")
+	_build_spots(main, [
+		"BuildSpot1", "BuildSpot2", "BuildSpot3", "BuildSpot4", "BuildSpot7",
+		"BuildSpot8", "BuildSpot9", "BuildSpot10", "BuildSpot11", "BuildSpot12",
+	])
+	_report_split(graph, "全部のマスに建てる")
+
+
+## 分岐点で 400 回抽選して、どちらの枝へ何割行くかを出す。
+func _report_split(graph: RouteGraph, label: String) -> void:
 	const FORK := 2
-	print("VisPreview: 分岐点 %d から次 = %d（枝A=3 / 枝B=5）コスト A=%.1f B=%.1f" % [
-		FORK, graph.next_node(FORK),
-		graph.edge_cost(graph.edge_between(2, 3)) + graph.edge_cost(graph.edge_between(3, 4)),
-		graph.edge_cost(graph.edge_between(2, 5)) + graph.edge_cost(graph.edge_between(5, 4)),
+	const STEM := 1
+	const BRANCH_A := 3
+	const BRANCH_B := 5
+	var cost_a: float = graph.edge_cost(graph.edge_between(FORK, BRANCH_A)) 		+ graph.cost_to_goal(BRANCH_A)
+	var cost_b: float = graph.edge_cost(graph.edge_between(FORK, BRANCH_B)) 		+ graph.cost_to_goal(BRANCH_B)
+
+	var rolls := 400
+	var to_a := 0
+	for i in rolls:
+		if graph.next_node(FORK, STEM) == BRANCH_A:
+			to_a += 1
+	print("VisPreview: %-18s コスト A=%5.1f B=%5.1f → 枝A %3d%% / 枝B %3d%%" % [
+		label, cost_a, cost_b,
+		roundi(100.0 * to_a / rolls), roundi(100.0 * (rolls - to_a) / rolls),
 	])
 
+
+func _build_spots(main: Node, names: Array) -> void:
 	var manager: BuildManager = main.get_node(^"BuildManager")
 	var data := load("res://resources/towers/tower_arrow.tres")
-	for spot_name in ["BuildSpot5", "BuildSpot6"]:
+	for spot_name in names:
 		var spot := main.get_node_or_null(NodePath("Level/BuildSpots/%s" % spot_name)) as BuildSpot
 		if spot == null:
 			continue
 		manager.select_tower(data)
 		manager._try_build(spot)
 	manager.clear_selection()
-
-	print("VisPreview: 枝Aを守った後の次 = %d、コスト A=%.1f B=%.1f" % [
-		graph.next_node(FORK),
-		graph.edge_cost(graph.edge_between(2, 3)) + graph.edge_cost(graph.edge_between(3, 4)),
-		graph.edge_cost(graph.edge_between(2, 5)) + graph.edge_cost(graph.edge_between(5, 4)),
-	])
 
 
 ## 引数から目的のステージ番号を読む。`stage` だけなら 2 面目。

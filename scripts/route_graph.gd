@@ -16,6 +16,14 @@ extends RefCounted
 ## 1.0 なら「守られた 1m は守られていない 2m と同じ重さ」になる。
 const THREAT_WEIGHT := 1.0
 
+## 分岐でどれだけ「安いほう」に寄せるか。
+##
+## **必ず最安の枝を選ぶと、分岐があっても全部の敵が同じ道を通ってしまう。**
+## そこでコストが安い枝ほど選ばれやすい抽選にしている。
+## 0 なら完全な五分五分、大きいほど安いほうへ集まる。
+## 2.0 だと、コストが 2 倍違う枝へ行く敵は 1/4 になる。
+const BRANCH_SHARPNESS := 2.0
+
 var route: RouteData = null
 var goal: int = 0
 
@@ -28,9 +36,13 @@ var _penalties := PackedFloat32Array()
 var _version: int = 0
 ## 節番号 -> [version, 次の節, ゴールまでのコスト, ゴールまでの距離]
 var _cache: Dictionary = {}
+## 分岐の抽選に使う乱数。**種を固定している。**
+## 同じ配置なら同じ流れになるので、バランス検証を繰り返しても結果がぶれない。
+var _rng := RandomNumberGenerator.new()
 
 
 func _init(route_data: RouteData) -> void:
+	_rng.seed = 20260905
 	route = route_data
 	if route == null:
 		return
@@ -109,13 +121,66 @@ func covered_length(edge: int, center: Vector3, radius: float, step: float = 0.5
 	return minf(covered, length)
 
 
-## from から次に進むべき節。分岐が無ければ道なりの節が返る。
-func next_node(from: int) -> int:
-	return int(_search(from)[1])
+## from から次に進む節を選ぶ。previous には来た節を渡す（引き返さないため）。
+##
+## 分岐が無ければ道なりの節が返る。分岐があるときは、ゴールまでのコストが
+## 安い枝ほど選ばれやすい抽選になる。**必ず最安を選ぶと全部の敵が同じ道を
+## 通ってしまう**ので、守りの薄い枝に多く流しつつ、厚い枝にもいくらか流す。
+func next_node(from: int, previous: int = -1) -> int:
+	var links: Array = _adjacency.get(from, [])
+	if links.is_empty():
+		return goal
+
+	# [節, その節を通ったときのゴールまでのコスト]
+	var candidates: Array = []
+	var cheapest := INF
+	for link in links:
+		var neighbour := int(link[0])
+		# 来た道へは戻らない。ただし行き止まりなら戻るしかない。
+		if neighbour == previous and links.size() > 1:
+			continue
+		var total: float = edge_cost(int(link[1])) + cost_to_goal(neighbour)
+		if is_inf(total):
+			continue
+		candidates.append([neighbour, total])
+		cheapest = minf(cheapest, total)
+
+	if candidates.is_empty():
+		return previous if previous >= 0 else goal
+	if candidates.size() == 1:
+		return int(candidates[0][0])
+	return _pick_weighted(candidates, cheapest)
 
 
-## from からゴールまで、選ばれた経路の実際の長さ（コストではなく距離）。
-## タワーが「ゴールに一番近い敵」を選ぶのに使う。
+## コストが安い枝ほど重い抽選。重みは (最安 / その枝) ^ BRANCH_SHARPNESS。
+##
+## 比で見るので、道の長さが変わっても偏り方は変わらない。
+## コストが同じなら重みも同じ＝五分五分になる。
+func _pick_weighted(candidates: Array, cheapest: float) -> int:
+	var weights := PackedFloat32Array()
+	var total := 0.0
+	for entry in candidates:
+		var weight := pow(cheapest / maxf(float(entry[1]), 0.0001), BRANCH_SHARPNESS)
+		weights.append(weight)
+		total += weight
+
+	var roll := _rng.randf() * total
+	for i in candidates.size():
+		roll -= weights[i]
+		if roll <= 0.0:
+			return int(candidates[i][0])
+	return int(candidates[candidates.size() - 1][0])
+
+
+## その節からゴールまでの最小コスト。A* の結果で、抽選の重み付けに使う。
+func cost_to_goal(from: int) -> float:
+	return float(_search(from)[2])
+
+
+## from からゴールまで、最安の経路の実際の長さ（コストではなく距離）。
+##
+## 抽選で別の枝へ行く敵もいるので厳密な残り距離ではないが、
+## タワーが「ゴールに一番近い敵」を選ぶための優先度としてはこれで足りる。
 func distance_to_goal(from: int) -> float:
 	return float(_search(from)[3])
 

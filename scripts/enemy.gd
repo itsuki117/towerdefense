@@ -93,7 +93,7 @@ func _advance(distance: float) -> void:
 		if _to_node == _graph.goal:
 			_finish(true)
 			return
-		if not _step_to(_graph.next_node(_to_node)):
+		if not _step_to(_graph.next_node(_to_node, _from_node)):
 			_finish(true)
 			return
 		length = _graph.edge_length(_edge)
