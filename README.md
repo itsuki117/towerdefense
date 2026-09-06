@@ -231,7 +231,7 @@ await _wait(wave.next_wave_delay)  # 次の波まで待つ
   Godot の Movie Maker モード（`--write-movie <出力先>/f.png`）と組み合わせると PNG で残せる。
   末尾に `-- focus` / `-- wave` / `-- fx` を付けると、寄りのカメラ・ウェーブ開始ボタン・
   エフェクトをそれぞれ確かめられる
-- [tools/make_sfx.py](tools/make_sfx.py) … 効果音 9 種を合成して `assets/audio/` へ書き出す
+- [tools/make_sfx.py](tools/make_sfx.py) … 外部音源が欠けたときの仮効果音 9 種を再生成する
 - [tools/make_stages.py](tools/make_stages.py) … ステージの `.tres` を書き出す。
   設置マスが道に近すぎないか・高台からはみ出していないかを**検算してから**書き出す
 
@@ -242,8 +242,8 @@ await _wait(wave.next_wave_delay)  # 次の波まで待つ
 - **エンジン**: Godot 4.6（GDScript / GL Compatibility レンダラ）
 - **3D モデル**: Blender で作成し、glTF (`.glb`) で書き出して取り込み
 - **物理**: Jolt Physics（射程判定と設置マスのレイキャストに `Area3D` を使用）
-- **効果音**: 暫定。標準ライブラリだけの Python スクリプトで合成している
-  （[tools/make_sfx.py](tools/make_sfx.py)）。外部素材への差し替え予定
+- **効果音**: Kenney と rubberduck の CC0 素材をゲーム向けに整形して使用。
+  出典・元ファイル名は [assets/audio/SOURCES.md](assets/audio/SOURCES.md) に記録
 
 ## 起動方法
 

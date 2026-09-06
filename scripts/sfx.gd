@@ -10,8 +10,8 @@ extends Node
 ## カメラが固定の見下ろしなので、位置ごとの聞こえ方は付けていない
 ## （AudioStreamPlayer3D ではなく非空間の AudioStreamPlayer を使う）。
 ##
-## 音源は tools/make_sfx.py で合成している。外から持ってこないので
-## 再配布ライセンスの管理が要らない。
+## 音源は Kenney と OpenGameArt の CC0 素材をゲーム向けに整形したもの。
+## 出典と元ファイル名は assets/audio/SOURCES.md に記録している。
 
 ## 何台まで同時に鳴らせるか。撃破が重なる後半の波でも足りる数にしてある。
 const POOL_SIZE := 12
