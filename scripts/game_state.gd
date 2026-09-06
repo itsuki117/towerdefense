@@ -31,6 +31,10 @@ const WEAPON_COSTS := [120, 200, 320]
 ## 不釣り合いに強くなってしまい、役職の切り分けが崩れるため。
 const WEAPON_STEP := 0.3
 
+## 開発者パネル専用。ライフを減らさない。製品版ではパネルごと消えるので
+## （scripts/dev_panel.gd）、ここが true になることは無い。
+var invincible: bool = false
+
 var result: Result = Result.PLAYING
 ## 周回するステージの並び。
 var campaign: CampaignData = null
@@ -238,4 +242,6 @@ func spend_gold(cost: int) -> bool:
 
 
 func damage_base(amount: int) -> void:
+	if invincible:
+		return
 	lives -= amount

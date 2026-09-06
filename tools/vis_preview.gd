@@ -53,6 +53,8 @@ func _ready() -> void:
 		await _show_tiers(main, manager)
 	if "interval" in OS.get_cmdline_user_args():
 		await _check_interval(main)
+	if "dev" in OS.get_cmdline_user_args():
+		_check_dev_panel(main)
 
 	_report_stage(main)
 	# `-- stage3` のように番号を付けると、そのステージに着くまで進める。
@@ -254,6 +256,38 @@ func _show_grid(main: Node, manager: BuildManager) -> void:
 	manager.set_physics_process(false)
 	level.get_node(^"BuildGridView").set_cursor(free[0], true)
 
+
+
+## 開発者パネルを確かめる。押した結果が GameState に出るかまで見る。
+##
+## パネルは製品版（リリース書き出し）では丸ごと消えるので、
+## ここで確かめられるのは開発用の実行だけ。
+func _check_dev_panel(main: Node) -> void:
+	var dev := main.get_node_or_null(^"UI/DevPanel")
+	if dev == null:
+		print("VisPreview: 開発者パネルが無い（製品版のはず）")
+		return
+	var panel: Control = dev.get_node(^"Panel")
+	print("VisPreview: 開発者パネル 既定の表示=%s / デバッグ実行=%s" % [
+		panel.visible, OS.is_debug_build(),
+	])
+	panel.visible = true
+
+	var before := GameState.gold
+	panel.get_node(^"GoldButton").pressed.emit()
+	print("VisPreview: ゴールド %d -> %d" % [before, GameState.gold])
+
+	panel.get_node(^"InvincibleButton").pressed.emit()
+	var lives := GameState.lives
+	GameState.damage_base(5)
+	print("VisPreview: 無敵=%s のときライフ %d -> %d" % [
+		GameState.invincible, lives, GameState.lives,
+	])
+	panel.get_node(^"InvincibleButton").pressed.emit()
+
+	panel.get_node(^"SpeedButton").pressed.emit()
+	print("VisPreview: 早送り time_scale=%.1f" % Engine.time_scale)
+	Engine.time_scale = 1.0
 
 
 ## インターバルの強化を確かめる。行の中身と、押したときに段が上がるかまで見る。

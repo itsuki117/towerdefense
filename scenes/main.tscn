@@ -19,6 +19,7 @@
 [ext_resource type="Resource" path="res://resources/towers/tower_arrow.tres" id="6_tower_arrow"]
 [ext_resource type="Script" uid="uid://v5vi8hj3uv3o" path="res://scripts/build_manager.gd" id="15_build_manager"]
 [ext_resource type="Script" path="res://scripts/result_screen.gd" id="17_result_screen"]
+[ext_resource type="Script" path="res://scripts/dev_panel.gd" id="31_dev_panel"]
 [ext_resource type="Script" path="res://scripts/camera_rig.gd" id="18_camera_rig"]
 [ext_resource type="Resource" path="res://resources/towers/tower_frost.tres" id="19_tower_frost"]
 
@@ -341,6 +342,73 @@ layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 22
 text = "次のステージへ"
+
+[node name="DevPanel" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("31_dev_panel")
+
+[node name="Panel" type="VBoxContainer" parent="UI/DevPanel"]
+visible = false
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -220.0
+offset_top = 80.0
+offset_right = -20.0
+offset_bottom = 300.0
+grow_horizontal = 0
+theme_override_constants/separation = 6
+
+[node name="TitleLabel" type="Label" parent="UI/DevPanel/Panel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.78, 0.4, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 16
+text = "DEV  (F3)"
+horizontal_alignment = 1
+
+[node name="GoldButton" type="Button" parent="UI/DevPanel/Panel"]
+custom_minimum_size = Vector2(200, 38)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 16
+text = "ゴールド +1000"
+
+[node name="KillButton" type="Button" parent="UI/DevPanel/Panel"]
+custom_minimum_size = Vector2(200, 38)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 16
+text = "敵を全滅"
+
+[node name="ClearButton" type="Button" parent="UI/DevPanel/Panel"]
+custom_minimum_size = Vector2(200, 38)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 16
+text = "ステージクリア"
+
+[node name="InvincibleButton" type="Button" parent="UI/DevPanel/Panel"]
+custom_minimum_size = Vector2(200, 38)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 16
+text = "無敵  OFF"
+
+[node name="SpeedButton" type="Button" parent="UI/DevPanel/Panel"]
+custom_minimum_size = Vector2(200, 38)
+layout_mode = 2
+focus_mode = 0
+theme_override_font_sizes/font_size = 16
+text = "早送り  ×1"
 
 [node name="ResultScreen" type="Control" parent="UI"]
 process_mode = 3
