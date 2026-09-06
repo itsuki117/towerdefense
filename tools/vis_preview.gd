@@ -21,6 +21,10 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	GameState.gold = 9999
+	# 開発者パネルは撮影の邪魔になるので、確認するとき以外は丸ごと隠す。
+	var dev_panel := main.get_node_or_null(^"UI/DevPanel") as CanvasItem
+	if dev_panel != null and not "dev" in OS.get_cmdline_user_args():
+		dev_panel.hide()
 	var manager: BuildManager = main.get_node(^"BuildManager")
 	# A* の確認は「何も建っていない状態」から始めたいので、既定の設置は飛ばす。
 	# A* と戦士の確認はタワー抜きで見たい（敵が着く前に溶けてしまうため）。
@@ -361,10 +365,20 @@ func _check_dev_panel(main: Node) -> void:
 		print("VisPreview: 開発者パネルが無い（製品版のはず）")
 		return
 	var panel: Control = dev.get_node(^"Panel")
-	print("VisPreview: 開発者パネル 既定の表示=%s / デバッグ実行=%s" % [
-		panel.visible, OS.is_debug_build(),
+	print("VisPreview: 開発者パネル ボタン=%s / 目印=%s / デバッグ実行=%s" % [
+		panel.visible, (dev.get_node(^"Hint") as Control).visible, OS.is_debug_build(),
 	])
-	panel.visible = true
+
+	# 閉じている状態を撮ってから開く。
+	await get_tree().create_timer(1.5).timeout
+	# **F3 を実際に流し込む。** 直接 visible を触ると「キーで開くか」を確かめられない。
+	var key := InputEventKey.new()
+	key.keycode = KEY_F3
+	key.pressed = true
+	Input.parse_input_event(key)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	print("VisPreview: F3 を押したあとの表示=%s" % panel.visible)
 
 	var before := GameState.gold
 	panel.get_node(^"GoldButton").pressed.emit()

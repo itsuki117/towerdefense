@@ -6,8 +6,10 @@ extends Control
 ## 隠しただけだと入力やショートカットが生きたままになり、
 ## 何かの拍子に製品版で効いてしまうため。
 ##
-## 既定では隠してあり、F3 で出し入れする。出しっぱなしにすると
-## 見た目の確認（撮影ハーネス）に毎回写り込んでしまう。
+## ボタンは既定では隠してあり、**F3** で出し入れする。出しっぱなしにすると
+## 見た目の確認に毎回写り込んでしまうため。
+## ただし「F3 で開く」こと自体は隅の小さな目印で常時出しておく——
+## どこにも書いていないと、作った本人でも押し方を忘れる（実際に忘れた）。
 ##
 ## ここのボタンは**ゲームの規則を曲げる**もの。GameState を直接いじるので、
 ## 通常の経路（支払い・ライフ減少）を通らない。検証を速くするための道具で、
@@ -19,6 +21,7 @@ const GOLD_STEP := 1000
 const TIME_SCALES := [1.0, 2.0, 4.0]
 
 @onready var _panel: VBoxContainer = $Panel
+@onready var _hint: Label = $Hint
 @onready var _speed_button: Button = $Panel/SpeedButton
 @onready var _invincible_button: Button = $Panel/InvincibleButton
 
@@ -32,6 +35,7 @@ func _ready() -> void:
 	# ポーズ中（インターバル・勝敗画面）でも触れるようにする。
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_panel.visible = false
+	_hint.visible = true
 
 	$Panel/GoldButton.pressed.connect(_on_gold_pressed)
 	$Panel/KillButton.pressed.connect(_on_kill_pressed)
@@ -46,6 +50,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	var key := event as InputEventKey
 	if key != null and key.pressed and not key.echo and key.keycode == KEY_F3:
 		_panel.visible = not _panel.visible
+		# 開いている間は目印を出しっぱなしにしない（パネル自身が目印になる）。
+		_hint.visible = not _panel.visible
 		get_viewport().set_input_as_handled()
 
 
