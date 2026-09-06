@@ -158,13 +158,20 @@ func _fight(delta: float) -> void:
 	if _attack_cooldown > 0.0:
 		return
 	_attack_cooldown = 1.0 / maxf(data.attack_rate, 0.01)
-	_targets[0].take_damage(attack_damage())
+	_targets[0].take_damage(attack_damage(_targets[0]))
 
 
-## 武器強化を乗せたダメージ。倍率なので、素のダメージが小さい役職ほど伸びは小さい
+## 相手に与えるダメージ。**固定ぶん ＋ 相手の最大 HP の割合ぶん**に、武器強化を掛ける。
+##
+## 割合を混ぜているのは、波が進んで敵が硬くなっても戦士が置いていかれないようにするため。
+## 固定ダメージだけだと、同じゴールドならタワーのほうが強い状態が最後まで直らなかった。
+## 武器強化が倍率なのは、素のダメージが小さい役職ほど伸びを小さくするため
 ## （盾兵が強化で殲滅役になってしまわないように）。
-func attack_damage() -> int:
-	return maxi(1, roundi(float(data.damage) * GameState.weapon_multiplier()))
+func attack_damage(target: Enemy) -> int:
+	var amount := float(data.damage)
+	if data.damage_percent > 0.0 and target != null:
+		amount += float(target.scaled_max_hp()) * data.damage_percent
+	return maxi(roundi(amount * GameState.weapon_multiplier()), 1)
 
 
 func take_damage(amount: int) -> void:

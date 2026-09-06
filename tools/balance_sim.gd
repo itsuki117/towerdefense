@@ -283,6 +283,9 @@ func _try_build_one() -> void:
 ## （実測: ステージ 1 がライフ 17 残しの勝利 → 敗北に変わった）。
 ## 戦士は盤面がひととおり建ってからの増援、という扱いにしてある。
 const WARRIOR_MIN_TOWERS := 6
+## 戦士を雇うのはタワーを何本ぶん残せるときか。
+## 序盤のゴールドはタワーに回したほうが強いので、余っているときだけ雇う。
+const WARRIOR_GOLD_RESERVE := 1
 
 
 func _try_hire_warriors() -> void:
@@ -293,7 +296,7 @@ func _try_hire_warriors() -> void:
 		if _warrior_manager.call(&"is_full"):
 			return
 		var data = load(WARRIOR_FILES[_hired % WARRIOR_FILES.size()])
-		if _game_state.gold - data.cost < tower_cost:
+		if _game_state.gold - data.cost < tower_cost * WARRIOR_GOLD_RESERVE:
 			return
 		if not _warrior_manager.call(&"hire", data):
 			return

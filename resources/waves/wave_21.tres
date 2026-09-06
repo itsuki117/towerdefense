@@ -10,7 +10,7 @@ script = ExtResource("2_wave_entry")
 enemy_data = ExtResource("3_enemy_normal")
 count = 20
 spawn_interval = 0.8
-hp_scale = 3.4
+hp_scale = 3.5
 
 [sub_resource type="Resource" id="Resource_entry_fast"]
 script = ExtResource("2_wave_entry")
@@ -18,7 +18,7 @@ enemy_data = ExtResource("4_enemy_fast")
 count = 11
 spawn_interval = 0.7
 start_delay = 2.0
-hp_scale = 3.4
+hp_scale = 3.5
 
 [resource]
 script = ExtResource("1_wave_data")

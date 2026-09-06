@@ -34,6 +34,9 @@ const FLASH_STRENGTH := 0.8
 ## 「本当にすれ違ったとき」だけ当たるようにする。
 const PASSING_REACH := 0.85
 
+## 足止めされている敵が受けるダメージの割り増し。
+const HELD_DAMAGE_BONUS := 0.5
+
 ## HP 倍率を体の大きさへ何割ぶん効かせるか。
 ## 硬い敵がまったく同じ見た目だと、なぜ倒せないのか分からない。
 ## 効かせすぎると道からはみ出すので、上限も置く。
@@ -54,6 +57,8 @@ const SQUASH := 0.12
 @onready var _visual: MeshInstance3D = $Visual
 
 var _hp: int = 1
+## 硬さ (hp_scale) を掛けたあとの最大 HP。戦士の割合ダメージが参照する。
+var _max_hp: int = 1
 ## 撃破・到達のどちらかで true。二重に signal を出さないためのガード。
 var _finished: bool = false
 var _material: StandardMaterial3D = null
@@ -93,7 +98,8 @@ func _ready() -> void:
 		push_warning("Enemy: setup() でデータとグラフを渡してください")
 		set_physics_process(false)
 		return
-	_hp = maxi(roundi(float(data.max_hp) * _hp_scale), 1)
+	_max_hp = maxi(roundi(float(data.max_hp) * _hp_scale), 1)
+	_hp = _max_hp
 	_hop_time = randf() * TAU
 	_start_at(_graph.spawn_node())
 	_apply_visual()
@@ -182,6 +188,11 @@ func can_be_engaged() -> bool:
 	return not _finished and _blocker == null
 
 
+## 波ごとの硬さを掛けたあとの最大 HP。
+func scaled_max_hp() -> int:
+	return _max_hp
+
+
 ## 今、戦士に足止めされているか。タワーの狙いを決めるのに使う。
 func is_blocked() -> bool:
 	return _blocker != null and is_instance_valid(_blocker)
@@ -235,6 +246,11 @@ func _strike_passing(delta: float) -> void:
 func take_damage(amount: int) -> void:
 	if _finished:
 		return
+	# 足止めされている敵は的が大きい。戦士の仕事を「自分で倒す」ではなく
+	# **タワーに倒させる**に寄せるための割り増し。同じゴールドならタワーのほうが
+	# 強い状態が続いていたので、戦士がタワーの火力を増やす形にした。
+	if is_blocked():
+		amount = maxi(roundi(float(amount) * (1.0 + HELD_DAMAGE_BONUS)), 1)
 	_flash_remaining = FLASH_TIME
 	_refresh_color()
 	Sfx.play(&"hit", -7.0)
