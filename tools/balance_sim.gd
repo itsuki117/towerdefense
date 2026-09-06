@@ -3,9 +3,13 @@ extends SceneTree
 ##
 ##     godot --headless --path . --script tools/balance_sim.gd -- --towers 3
 ##     godot --headless --path . --script tools/balance_sim.gd -- --towers 99 --frost-every 0
+##     godot --headless --path . --script tools/balance_sim.gd -- --towers 3 --tier 3
 ##
 ## --towers      建てる上限。3 なら「3本しか建てない下手なプレイヤー」、
 ##               99 なら「置けるだけ置く上手なプレイヤー」の想定。
+## --tier        アロータワーの段（1〜5）。インターバルで強化を買って
+##               このステージに来た、という想定。**強化の費用は払わない**ので、
+##               「その段の火力だけ」を測れる。
 ## --frost-every 何本に1本を減速砲にするか。0 なら通常砲だけ。
 ##               通常砲だけの結果と比べると、減速砲を混ぜる価値が測れる。
 ##
@@ -28,6 +32,7 @@ const FROST := "res://resources/towers/tower_frost.tres"
 
 var _max_towers := 99
 var _frost_every := 3
+var _tier := 1
 var _game_state: Node = null
 var _manager: Node = null
 var _level: Node = null
@@ -49,6 +54,9 @@ func _initialize() -> void:
 	index = args.find("--frost-every")
 	if index >= 0 and index + 1 < args.size():
 		_frost_every = int(args[index + 1])
+	index = args.find("--tier")
+	if index >= 0 and index + 1 < args.size():
+		_tier = maxi(int(args[index + 1]), 1)
 
 	Engine.physics_ticks_per_second = BASE_TICKS * SPEEDUP
 	Engine.time_scale = float(SPEEDUP)
@@ -59,8 +67,29 @@ func _initialize() -> void:
 	_manager = root.get_node_or_null(^"Main/BuildManager")
 	_level = root.get_node_or_null(^"Main/Level")
 	_game_state.stage_cleared.connect(_on_stage_cleared)
+	_apply_tier()
 
-	print("=== SIM START (towers<=%d, stage=%d) ===" % [_max_towers, _game_state.stage + 1])
+	print("=== SIM START (towers<=%d, tier=%d, stage=%d) ===" % [
+		_max_towers, _tier, _game_state.stage + 1,
+	])
+
+
+## アロータワーの段を _tier まで進める。費用は払わない。
+##
+## 強化の費用まで含めると「その段に届くゴールドが貯まるか」の測定になってしまう。
+## ここで見たいのは段そのものの火力なので、費用は分けて考える。
+func _apply_tier() -> void:
+	var base := load(ARROW)
+	var current = base
+	for _step in _tier - 1:
+		if current.next_tier == null:
+			break
+		current = current.next_tier
+	_game_state.tower_tiers[base] = current
+	if current != base:
+		print("アロータワー -> %s（段 %d / 設置 %d G / ダメージ %d）" % [
+			current.display_name, current.tier, current.cost, current.damage,
+		])
 
 
 func _process(delta: float) -> bool:
@@ -102,7 +131,7 @@ func _try_build_one() -> void:
 	if _spots.is_empty():
 		_collect_spots()
 	var use_frost := _frost_every > 0 and _built % _frost_every == _frost_every - 1
-	var data := load(FROST if use_frost else ARROW)
+	var data = load(FROST) if use_frost else _game_state.current_tower(load(ARROW))
 	if _game_state.gold < data.cost:
 		return
 	_manager.call(&"select_tower", data)

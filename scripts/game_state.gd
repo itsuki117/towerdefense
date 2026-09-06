@@ -12,6 +12,8 @@ signal stage_changed(index: int)
 signal stage_cleared(stage_number: int, reward: int)
 signal game_over
 signal game_won
+## 強化を買った。UI はここを購読して表示を作り直す。
+signal upgrades_changed
 
 enum Result { PLAYING, WON, LOST }
 
@@ -20,9 +22,24 @@ const START_GOLD := 120
 const START_LIVES := 20
 const CAMPAIGN_PATH := "res://resources/campaign.tres"
 
+## 武器強化の段数の上限と、1 段ごとの費用。
+const WEAPON_MAX_LEVEL := 3
+const WEAPON_COSTS := [120, 200, 320]
+## 1 段ごとにダメージが何割増えるか。
+##
+## 一律 +N ではなく割合にしてある。素のダメージが小さい盾兵（2）だけが
+## 不釣り合いに強くなってしまい、役職の切り分けが崩れるため。
+const WEAPON_STEP := 0.3
+
 var result: Result = Result.PLAYING
 ## 周回するステージの並び。
 var campaign: CampaignData = null
+
+## 種類ごとの今のティア。鍵は**基準の TowerData**（UI が配列で持っているもの）で、
+## 値がその種類の現在の段。周回に属する状態なので、ステージをまたいでも残る。
+var tower_tiers: Dictionary = {}
+## 戦士の武器強化の段。全役職に同じ割合で掛かる。
+var weapon_level: int = 0
 
 ## 今いるステージ（0 始まり）。**周回に属する状態**なので、
 ## ステージを作り直しても（シーンを読み直しても）ここは残る。
@@ -99,7 +116,59 @@ func is_last_stage() -> bool:
 func reset_run() -> void:
 	stage = 0
 	gold = START_GOLD
+	tower_tiers.clear()
+	weapon_level = 0
+	upgrades_changed.emit()
 	_reset_stage_state()
+
+
+## その種類を今どの段で建てるか。強化していなければ基準をそのまま返す。
+##
+## 強化は**置いた 1 本ではなく種類そのもの**に掛かる。ステージが変わると設置は
+## リセットされるので、1 本に掛けても次のステージで消えてしまう。
+func current_tower(base: TowerData) -> TowerData:
+	if base == null:
+		return null
+	var current := tower_tiers.get(base) as TowerData
+	return current if current != null else base
+
+
+func can_upgrade_tower(base: TowerData) -> bool:
+	var current := current_tower(base)
+	return current != null and current.next_tier != null and current.upgrade_cost > 0
+
+
+## 1 段上げる。払えない・これ以上上がらないときは false。
+func upgrade_tower(base: TowerData) -> bool:
+	if not can_upgrade_tower(base):
+		return false
+	var current := current_tower(base)
+	if not spend_gold(current.upgrade_cost):
+		return false
+	tower_tiers[base] = current.next_tier
+	upgrades_changed.emit()
+	return true
+
+
+## 戦士のダメージに掛かる倍率。
+func weapon_multiplier() -> float:
+	return 1.0 + WEAPON_STEP * float(weapon_level)
+
+
+## 武器を 1 段上げる費用。これ以上上がらないなら 0。
+func weapon_upgrade_cost() -> int:
+	if weapon_level >= WEAPON_MAX_LEVEL:
+		return 0
+	return WEAPON_COSTS[weapon_level]
+
+
+func upgrade_weapon() -> bool:
+	var cost := weapon_upgrade_cost()
+	if cost <= 0 or not spend_gold(cost):
+		return false
+	weapon_level += 1
+	upgrades_changed.emit()
+	return true
 
 
 ## 次のステージへ進む。ゴールドは持ち越し、ライフとウェーブは仕切り直す。

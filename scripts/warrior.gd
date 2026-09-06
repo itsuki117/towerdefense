@@ -152,7 +152,13 @@ func _fight(delta: float) -> void:
 	if _attack_cooldown > 0.0:
 		return
 	_attack_cooldown = 1.0 / maxf(data.attack_rate, 0.01)
-	_targets[0].take_damage(data.damage)
+	_targets[0].take_damage(attack_damage())
+
+
+## 武器強化を乗せたダメージ。倍率なので、素のダメージが小さい役職ほど伸びは小さい
+## （盾兵が強化で殲滅役になってしまわないように）。
+func attack_damage() -> int:
+	return maxi(1, roundi(float(data.damage) * GameState.weapon_multiplier()))
 
 
 func take_damage(amount: int) -> void:

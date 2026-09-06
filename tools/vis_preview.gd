@@ -26,7 +26,8 @@ func _ready() -> void:
 	# A* と戦士の確認はタワー抜きで見たい（敵が着く前に溶けてしまうため）。
 	var bare := "astar" in OS.get_cmdline_user_args() \
 		or "warrior" in OS.get_cmdline_user_args() \
-		or "archer" in OS.get_cmdline_user_args()
+		or "archer" in OS.get_cmdline_user_args() \
+		or "tiers" in OS.get_cmdline_user_args()
 	if not bare:
 		_build_preview_towers(main, manager)
 	manager.clear_selection()
@@ -48,6 +49,10 @@ func _ready() -> void:
 		await _check_warriors(main)
 	if "archer" in OS.get_cmdline_user_args():
 		await _check_archers_alone(main)
+	if "tiers" in OS.get_cmdline_user_args():
+		await _show_tiers(main, manager)
+	if "interval" in OS.get_cmdline_user_args():
+		await _check_interval(main)
 
 	_report_stage(main)
 	# `-- stage3` のように番号を付けると、そのステージに着くまで進める。
@@ -249,6 +254,105 @@ func _show_grid(main: Node, manager: BuildManager) -> void:
 	manager.set_physics_process(false)
 	level.get_node(^"BuildGridView").set_cursor(free[0], true)
 
+
+
+## インターバルの強化を確かめる。行の中身と、押したときに段が上がるかまで見る。
+func _check_interval(main: Node) -> void:
+	await get_tree().create_timer(0.3).timeout
+	GameState.clear_stage()
+	await get_tree().process_frame
+
+	var screen: Control = main.get_node(^"UI/IntervalScreen")
+	var rows := screen.get_node(^"Panel/Upgrades").get_children()
+	print("VisPreview: インターバル 表示=%s ポーズ=%s 強化の行=%d 所持=%d" % [
+		screen.visible, get_tree().paused, rows.size(), GameState.gold,
+	])
+	_print_rows(rows, "買う前")
+
+	# 全部の行を 1 回ずつ押す。ポーズ中でもボタンが効くか（process_mode）の確認も兼ねる。
+	for row in rows:
+		var button: Button = row.get_child(1)
+		if not button.disabled:
+			button.pressed.emit()
+	await get_tree().process_frame
+	_print_rows(rows, "1 回ずつ買った後")
+
+	# 買った結果が盤面のボタンにも出ているか（段が上がると名前と費用が変わる）。
+	var bar := main.get_node(^"UI/HUD/BuildBar/TowerRow")
+	var labels := ""
+	for button in bar.get_children():
+		labels += " [%s]" % (button as Button).text
+	print("VisPreview: 盤面のタワーボタン%s" % labels)
+
+
+func _print_rows(rows: Array, title: String) -> void:
+	print("VisPreview: --- %s ---" % title)
+	for row in rows:
+		var button: Button = row.get_child(1)
+		print("VisPreview:   %-46s %s%s" % [
+			(row.get_child(0) as Label).text, button.text,
+			"（押せない）" if button.disabled else "",
+		])
+
+
+## タワーのティアを確かめる。
+##
+## 前半は強化を順に買って、種類の段が入れ替わるか（＝インターバルで押す操作）。
+## 後半は 5 段ぶんを一列に建てて、モデルが段ごとに変わっているかを絵で見る。
+func _show_tiers(main: Node, manager: BuildManager) -> void:
+	var base := load("res://resources/towers/tower_arrow.tres") as TowerData
+	print("VisPreview: --- 強化の階段 ---")
+	while GameState.can_upgrade_tower(base):
+		var before := GameState.current_tower(base)
+		var cost := before.upgrade_cost
+		if not GameState.upgrade_tower(base):
+			print("VisPreview: %s の強化に失敗（%d G 足りない）" % [before.display_name, cost])
+			break
+		var after := GameState.current_tower(base)
+		print("VisPreview: %s -> %s (%d G) 段 %d / 設置 %d G / ダメージ %d / 射程 %.1f" % [
+			before.display_name, after.display_name, cost,
+			after.tier, after.cost, after.damage, after.attack_range,
+		])
+	print("VisPreview: 打ち止め = %s（残り %d G）" % [
+		GameState.current_tower(base).display_name, GameState.gold,
+	])
+
+	var level := Level.find(main)
+	var files := ["tower_arrow", "tower_cannon", "tower_heavy", "tower_siege", "tower_apex"]
+	var line := _tier_line(level)
+	for i in files.size():
+		var data := load("res://resources/towers/%s.tres" % files[i]) as TowerData
+		manager.select_tower(data)
+		if not manager.build_at(line[i % line.size()]):
+			print("VisPreview: %s を建てられなかった" % data.display_name)
+	manager.clear_selection()
+
+	# `-- tiers focus` で最上位のタワーに寄る。段が上がると図体も大きくなるので、
+	# 固定の距離だと画面からはみ出す（focus_radius に合わせて伸ばしてある）。
+	if "focus" in OS.get_cmdline_user_args():
+		var towers := main.get_node(^"Towers")
+		var camera: Camera3D = main.get_node(^"Camera3D")
+		camera.call(&"focus_on", towers.get_child(towers.get_child_count() - 1))
+		await get_tree().create_timer(1.0).timeout
+
+
+## 5 段を並べて撮るためのマスの列。道沿いの帯の中で、同じ z が一番多い列を使う。
+func _tier_line(level: Level) -> Array[Vector2i]:
+	var counts: Dictionary = {}
+	for cell in level.grid.cells:
+		counts[cell.y] = (counts.get(cell.y, 0) as int) + 1
+	var best_row := 0
+	var best_count := -1
+	for row in counts:
+		if counts[row] > best_count:
+			best_count = counts[row]
+			best_row = row
+	var line: Array[Vector2i] = []
+	for cell in level.grid.cells:
+		if cell.y == best_row:
+			line.append(cell)
+	line.sort_custom(func(a, b): return a.x < b.x)
+	return line
 
 
 ## 弓兵だけを並べたときに、前列が無いせいで崩れるかを確かめる。

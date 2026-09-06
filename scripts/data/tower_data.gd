@@ -3,11 +3,19 @@ extends Resource
 ## タワー 1 種類ぶんのステータス。
 ##
 ## EnemyData と同じ方針で、タワーシーンは 1 つ・差分は .tres で表現する。
+##
+## **ティアは .tres の鎖で持つ**（next_tier）。強化は置いた 1 本ではなく
+## タワーの種類そのものに掛かるので、「今どの .tres で建てるか」を
+## GameState が差し替えるだけで済む。段ごとの数値・モデル・名前は
+## すべてこのファイルの中に閉じていて、コード側に段の知識が要らない。
+## 鎖は tools/make_tower_tiers.py が検算してから書き出す。
 
 ## 追加効果。命中時に Projectile が適用する。
 enum Effect { NONE, SLOW }
 
 @export var display_name: String = "Tower"
+## 鎖の何段目か（1 始まり）。表示にしか使わない。
+@export var tier: int = 1
 ## このタワー専用のシーン。Blender で作ったモデルを持つタワーはここで指定する。
 ## null なら BuildManager の default_tower_scene（プリミティブ表示）が使われ、
 ## 見た目は body_color だけで差を付ける。
@@ -30,3 +38,9 @@ enum Effect { NONE, SLOW }
 @export var body_color: Color = Color(0.85, 0.72, 0.35)
 ## 発射音の名前。Sfx.LIBRARY のキーを指す。
 @export var shoot_sfx: StringName = &"shoot_arrow"
+
+@export_group("ティア")
+## 次の段へ上げる費用。0 なら「これ以上は無い」。
+@export var upgrade_cost: int = 0
+## 次の段の TowerData。null なら最終段。
+@export var next_tier: TowerData

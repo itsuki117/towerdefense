@@ -18,8 +18,11 @@ extends Camera3D
 		_aim()
 
 @export_group("タワーへの寄り")
-## タワーからカメラまでの距離。
+## タワーからカメラまでの距離。上位ティアのタワーは大きいので、
+## focus_radius() を持つ相手にはその比で伸ばす（固定だと画面からはみ出す）。
 @export var focus_distance: float = 4.6
+## focus_distance がちょうど良い相手の大きさ。これより大きいと距離を伸ばす。
+const FOCUS_BASE_RADIUS := 0.75
 ## 寄ったときの見下ろし角（度）。引きより低くして、砲台の形が読めるようにする。
 @export var focus_elevation: float = 27.0
 ## 注視点をタワーの根元からどれだけ持ち上げるか。
@@ -101,8 +104,16 @@ func focus_on(target: Node3D) -> void:
 	var elevation := deg_to_rad(focus_elevation)
 	var offset := Vector3(
 		azimuth.x * cos(elevation), sin(elevation), azimuth.y * cos(elevation)
-	) * focus_distance
+	) * (focus_distance * _focus_scale(target))
 	_start_move(pivot + offset, pivot + Vector3.UP * focus_look_height)
+
+
+## 相手の大きさに合わせた距離の倍率。大きさを申告しない相手は 1.0。
+func _focus_scale(target: Node3D) -> float:
+	if not target.has_method(&"focus_radius"):
+		return 1.0
+	var radius: float = target.call(&"focus_radius")
+	return maxf(radius / FOCUS_BASE_RADIUS, 1.0)
 
 
 ## 引きの視点に戻す。
