@@ -88,12 +88,21 @@ func edge_between(a: int, b: int) -> int:
 	return -1
 
 
-## タワーが守っているぶんのコストを足す。タワーを建てるたびに呼ばれる。
+## 守られているぶんのコストを足す。タワーを建てたとき・戦士が構えたときに呼ばれる。
 func add_threat(edge: int, covered_length: float) -> void:
 	if edge < 0 or edge >= _penalties.size() or covered_length <= 0.0:
 		return
 	_penalties[edge] += covered_length * THREAT_WEIGHT
 	# コストが変わったので、貯めておいた経路は捨てる。
+	_version += 1
+
+
+## 足したぶんを戻す。**戦士は動くし倒れる**ので、タワーと違って引く側も要る。
+func remove_threat(edge: int, covered_length: float) -> void:
+	if edge < 0 or edge >= _penalties.size() or covered_length <= 0.0:
+		return
+	# 引きすぎて負にならないようにする（浮動小数の誤差で 0 を割ることがある）。
+	_penalties[edge] = maxf(_penalties[edge] - covered_length * THREAT_WEIGHT, 0.0)
 	_version += 1
 
 

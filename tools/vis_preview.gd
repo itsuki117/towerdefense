@@ -27,7 +27,7 @@ func _ready() -> void:
 	var bare := "astar" in OS.get_cmdline_user_args() \
 		or "warrior" in OS.get_cmdline_user_args() \
 		or "archer" in OS.get_cmdline_user_args() \
-		or "tiers" in OS.get_cmdline_user_args()
+		or "tiers" in OS.get_cmdline_user_args() 		or "steer" in OS.get_cmdline_user_args()
 	if not bare:
 		_build_preview_towers(main, manager)
 	manager.clear_selection()
@@ -61,6 +61,9 @@ func _ready() -> void:
 	var target := _target_stage()
 	if target > GameState.stage_number():
 		await _advance_stage(main)
+		return
+	if "steer" in OS.get_cmdline_user_args():
+		await _check_steering(main)
 
 
 ## 分かれ道で敵の流れがどう分かれるかを確かめる。
@@ -256,6 +259,32 @@ func _show_grid(main: Node, manager: BuildManager) -> void:
 	manager.set_physics_process(false)
 	level.get_node(^"BuildGridView").set_cursor(free[0], true)
 
+
+
+## 戦士で敵の流れを寄せられるかを確かめる（分かれ道のあるステージ専用）。
+##
+## 戦士は道の上に立つので、立っている辺のコストが上がる。片方の枝に置けば
+## 敵はもう一方へ回るはず——タワーにはできない仕事なので、ここだけ別に測る。
+func _check_steering(main: Node) -> void:
+	var level: Level = main.get_node(^"Level")
+	var graph := level.graph
+	if graph == null or graph.route.edges.size() < 8:
+		print("VisPreview: 分岐のあるステージではありません（-- stage3 と一緒に使う）")
+		return
+	var manager: WarriorManager = main.get_node(^"WarriorManager")
+
+	_report_split(graph, "戦士なし")
+	var data := load("res://resources/warriors/warrior_shield.tres")
+	for i in 3:
+		manager.hire(data)
+	# 拠点から歩いて枝に着くまで待つ。着いた辺のコストが上がる。
+	await get_tree().create_timer(8.0).timeout
+	_report_split(graph, "盾兵 3 人を配置")
+
+	for node in get_tree().get_nodes_in_group(&"warrior"):
+		(node as Warrior).take_damage(99999)
+	await get_tree().process_frame
+	_report_split(graph, "戦士が倒れたあと")
 
 
 ## 開発者パネルを確かめる。押した結果が GameState に出るかまで見る。

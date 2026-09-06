@@ -6,6 +6,10 @@ extends Node3D
 ## (RouteGraph.next_node_away)。行き先を選ぶ理由があるのは敵のほうで、
 ## 戦士は前へ出ていくだけなので、敵の A* をそのまま使い回さない。
 ##
+## **道に居座ると、その道は敵に嫌われる。** 戦士は道の上に立つので、
+## 立っている辺の経路コストを上げる（`WarriorData.threat_length`）。
+## 分かれ道の片方に置けば流れをもう一方へ寄せられる——タワーにはできない仕事。
+##
 ## **拠点から advance_limit までしか前に出ない。** 湧き口まで出て行かせると
 ## タワーの傘の外で戦うことになり、雇うほど弱くなる（検証で実測した）。
 ## 手前で止まれば、タワーの射程の中に敵を縛り付ける仕事になる。
@@ -55,6 +59,9 @@ var _side_offset: float = 0.0
 var _targets: Array[Enemy] = []
 var _attack_cooldown: float = 0.0
 var _flash_remaining: float = 0.0
+## 今コストを上乗せしている辺と、その量。倒れたら戻す。
+var _threatened_edge: int = -1
+var _threat_amount: float = 0.0
 
 
 ## グラフと種別を渡す。add_child より前に呼ぶこと。
@@ -187,6 +194,8 @@ func take_damage(amount: int) -> void:
 func _fall() -> void:
 	_finished = true
 	remove_from_group(&"warrior")
+	# 居座りをやめるので、上げていた経路コストを戻す。
+	_clear_threat()
 	# 掴んでいた敵を放してやらないと、その敵が永久に止まったままになる。
 	if blocks():
 		for enemy in _targets:
@@ -239,10 +248,30 @@ func _step_to(next: int) -> bool:
 	var edge := _graph.edge_between(current, next)
 	if edge < 0:
 		return false
+	_clear_threat()
 	_from_node = current
 	_to_node = next
 	_edge = edge
+	_apply_threat()
 	return true
+
+
+## 今いる辺を「守られている」ことにする。敵の枝選びに効く。
+func _apply_threat() -> void:
+	if _threatened_edge >= 0 or _edge < 0 or data == null or data.threat_length <= 0.0:
+		return
+	# 辺より長くは守れない。短い辺に立ったときに効きすぎないようにする。
+	_threat_amount = minf(data.threat_length, _graph.edge_length(_edge))
+	_threatened_edge = _edge
+	_graph.add_threat(_threatened_edge, _threat_amount)
+
+
+func _clear_threat() -> void:
+	if _threatened_edge < 0:
+		return
+	_graph.remove_threat(_threatened_edge, _threat_amount)
+	_threatened_edge = -1
+	_threat_amount = 0.0
 
 
 func _place_on_edge(length: float) -> void:

@@ -13,6 +13,7 @@ damage_percent = 0.04
 attack_rate = 1.5
 move_speed = 3.2
 attack_range = 4.5
+threat_length = 2
 advance_limit = 13
 block_capacity = 0
 gear = 2
