@@ -18,4 +18,4 @@ display_name = "ステージ 1 — 尾根の道"
 route = ExtResource("2_route")
 waves = [ExtResource("3_wave"), ExtResource("4_wave"), ExtResource("5_wave"), ExtResource("6_wave"), ExtResource("7_wave"), ExtResource("8_wave"), ExtResource("9_wave"), ExtResource("10_wave")]
 lives = 20
-clear_reward = 80
+clear_reward = 2000

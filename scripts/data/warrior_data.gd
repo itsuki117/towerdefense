@@ -33,6 +33,12 @@ enum Gear { SWORD, SHIELD, BOW }
 @export_range(0.5, 8.0, 0.1) var attack_range: float = 1.1
 ## 同時に足止めできる敵の数。**0 なら足止めしない**（素通りさせて撃つだけ）。
 @export_range(0, 3, 1) var block_capacity: int = 1
+## 拠点からこの距離までしか前に出ない (m)。
+##
+## 湧き口まで出て行かせると、タワーの傘の外で戦うことになって溶けるだけになる
+## （検証で実測: 戦士を雇うほうが雇わないより弱くなっていた）。
+## 手前で止めれば、タワーの射程の中に敵を縛り付ける仕事になる。
+@export_range(2.0, 40.0, 0.5) var advance_limit: float = 10.0
 @export var gear: Gear = Gear.SWORD
 ## 体の大きさの倍率。役職の役割を体格でも見せる。
 @export_range(0.6, 1.6, 0.05) var body_scale: float = 1.0

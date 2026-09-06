@@ -1,17 +1,23 @@
-[gd_resource type="Resource" script_class="StageData" load_steps=7 format=3]
+[gd_resource type="Resource" script_class="StageData" load_steps=13 format=3]
 
 
 [ext_resource type="Script" path="res://scripts/data/stage_data.gd" id="1_stage_data"]
 [ext_resource type="Resource" path="res://resources/stages/stage_03_route.tres" id="2_route"]
-[ext_resource type="Resource" path="res://resources/waves/wave_05.tres" id="3_wave"]
-[ext_resource type="Resource" path="res://resources/waves/wave_06.tres" id="4_wave"]
-[ext_resource type="Resource" path="res://resources/waves/wave_07.tres" id="5_wave"]
-[ext_resource type="Resource" path="res://resources/waves/wave_08.tres" id="6_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_17.tres" id="3_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_18.tres" id="4_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_19.tres" id="5_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_20.tres" id="6_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_21.tres" id="7_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_22.tres" id="8_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_23.tres" id="9_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_24.tres" id="10_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_25.tres" id="11_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_26.tres" id="12_wave"]
 
 [resource]
 script = ExtResource("1_stage_data")
 display_name = "ステージ 3 — 分かれ道"
 route = ExtResource("2_route")
-waves = [ExtResource("3_wave"), ExtResource("4_wave"), ExtResource("5_wave"), ExtResource("6_wave")]
+waves = [ExtResource("3_wave"), ExtResource("4_wave"), ExtResource("5_wave"), ExtResource("6_wave"), ExtResource("7_wave"), ExtResource("8_wave"), ExtResource("9_wave"), ExtResource("10_wave"), ExtResource("11_wave"), ExtResource("12_wave")]
 lives = 20
-clear_reward = 140
+clear_reward = 0

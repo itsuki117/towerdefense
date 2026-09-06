@@ -7,7 +7,7 @@
 script = ExtResource("1_tower_data")
 display_name = "フロストタワー"
 tower_scene = ExtResource("2_tower_frost_scene")
-cost = 55
+cost = 220
 damage = 4
 attack_range = 6.0
 fire_rate = 1.5

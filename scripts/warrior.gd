@@ -6,6 +6,10 @@ extends Node3D
 ## (RouteGraph.next_node_away)。行き先を選ぶ理由があるのは敵のほうで、
 ## 戦士は前へ出ていくだけなので、敵の A* をそのまま使い回さない。
 ##
+## **拠点から advance_limit までしか前に出ない。** 湧き口まで出て行かせると
+## タワーの傘の外で戦うことになり、雇うほど弱くなる（検証で実測した）。
+## 手前で止まれば、タワーの射程の中に敵を縛り付ける仕事になる。
+##
 ## **役職の違いは block_capacity と attack_range で作る**（WarriorData）。
 ## 敵 1 体を掴めるのは 1 人だけなので、盾兵が 2 体を抱えている間は
 ## 衛兵がその 2 体に手を出せない。誰が誰を持つかが自然に分かれる。
@@ -39,8 +43,10 @@ var _from_node: int = 0
 var _to_node: int = 0
 var _edge: int = -1
 var _travelled: float = 0.0
-## これ以上前に出られない（湧き口まで来た）。
+## これ以上前に出られない（湧き口まで来た、または前進の上限に達した）。
 var _at_front: bool = false
+## 拠点から道なりに進んだ距離。advance_limit と比べる。
+var _advanced: float = 0.0
 ## 道の中心からの左右のずれ。同時に雇うと全員が同じ位置に重なるので、
 ## 個体ごとに散らして横並びに見せる。
 var _side_offset: float = 0.0
@@ -188,6 +194,12 @@ func _fall() -> void:
 
 ## 道の上を distance だけ進める。節に着いたらゴールと逆向きの隣へ乗り換える。
 func _advance(distance: float) -> void:
+	_advanced += distance
+	if _advanced >= data.advance_limit:
+		# タワーの傘の外まで出ない。前線はここまで。
+		distance -= _advanced - data.advance_limit
+		_advanced = data.advance_limit
+		_at_front = true
 	_travelled += distance
 	var length := _graph.edge_length(_edge)
 	while _travelled >= length:

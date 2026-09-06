@@ -34,6 +34,14 @@ const FLASH_STRENGTH := 0.8
 ## 「本当にすれ違ったとき」だけ当たるようにする。
 const PASSING_REACH := 0.85
 
+## HP 倍率を体の大きさへ何割ぶん効かせるか。
+## 硬い敵がまったく同じ見た目だと、なぜ倒せないのか分からない。
+## 効かせすぎると道からはみ出すので、上限も置く。
+const HP_SIZE_GAIN := 0.09
+const HP_SIZE_LIMIT := 1.35
+## HP 倍率ぶん体色を暗くする上限。
+const HP_DARKEN_LIMIT := 0.35
+
 ## 体の大きさ（半径）。EnemyData.body_scale がこれに掛かる。
 const BODY_SIZE := Vector3(0.42, 0.36, 0.42)
 ## 跳ねる速さと、つぶれ具合。止まって見えないようにするための演出。
@@ -49,6 +57,8 @@ var _hp: int = 1
 ## 撃破・到達のどちらかで true。二重に signal を出さないためのガード。
 var _finished: bool = false
 var _material: StandardMaterial3D = null
+## 波ごとの HP 倍率。見た目にも少しだけ効かせる（硬い敵は大きく・暗く）。
+var _hp_scale: float = 1.0
 ## 現在の速度倍率。1.0 で等速。
 var _slow_factor: float = 1.0
 var _slow_remaining: float = 0.0
@@ -69,9 +79,12 @@ var _attack_cooldown: float = 0.0
 
 
 ## グラフと種別を渡す。add_child より前に呼ぶこと。
-func setup(graph: RouteGraph, enemy_data: EnemyData) -> void:
+##
+## hp_scale は波ごとの HP 倍率（WaveEntry）。同じ敵種のまま歯応えだけを上げる。
+func setup(graph: RouteGraph, enemy_data: EnemyData, hp_scale: float = 1.0) -> void:
 	_graph = graph
 	data = enemy_data
+	_hp_scale = maxf(hp_scale, 0.1)
 
 
 func _ready() -> void:
@@ -80,7 +93,7 @@ func _ready() -> void:
 		push_warning("Enemy: setup() でデータとグラフを渡してください")
 		set_physics_process(false)
 		return
-	_hp = data.max_hp
+	_hp = maxi(roundi(float(data.max_hp) * _hp_scale), 1)
 	_hop_time = randf() * TAU
 	_start_at(_graph.spawn_node())
 	_apply_visual()
@@ -155,9 +168,23 @@ func _place_on_edge(length: float) -> void:
 		look_at(position + forward, Vector3.UP)
 
 
+## 戦士に与えるダメージ。硬さ (hp_scale) に**平方根で**連れて上がる。
+##
+## 上げないと、後半は倒せないだけで殴られもしない敵になり、
+## 戦士が不死身の足止め装置になってしまう。かといって硬さと同じ倍率で上げると、
+## 後半の戦士が一瞬で溶けて雇う意味が消える。その中間を取っている。
+func _melee_damage() -> int:
+	return maxi(roundi(float(data.melee_damage) * sqrt(_hp_scale)), 1)
+
+
 ## 手が空いている（まだ誰にも止められていない）か。
 func can_be_engaged() -> bool:
 	return not _finished and _blocker == null
+
+
+## 今、戦士に足止めされているか。タワーの狙いを決めるのに使う。
+func is_blocked() -> bool:
+	return _blocker != null and is_instance_valid(_blocker)
 
 
 ## 戦士が足止めを始める。すでに掴まれていたら false。
@@ -178,7 +205,7 @@ func _fight(delta: float) -> void:
 	if _attack_cooldown > 0.0:
 		return
 	_attack_cooldown = 1.0 / maxf(data.attack_rate, 0.01)
-	_blocker.call(&"take_damage", data.melee_damage)
+	_blocker.call(&"take_damage", _melee_damage())
 
 
 ## 止められていないときに、すぐ横の戦士を歩きながら殴る。
@@ -202,7 +229,7 @@ func _strike_passing(delta: float) -> void:
 		_attack_cooldown = 0.0
 		return
 	_attack_cooldown = 1.0 / maxf(data.attack_rate, 0.01)
-	nearest.call(&"take_damage", data.melee_damage)
+	nearest.call(&"take_damage", _melee_damage())
 
 
 func take_damage(amount: int) -> void:
@@ -262,8 +289,9 @@ func _update_hop(delta: float) -> void:
 	var lift := absf(sin(_hop_time))
 	var squash := 1.0 - lift * SQUASH
 	var stretch := 1.0 + lift * SQUASH
-	_visual.position.y = BODY_SIZE.y + lift * HOP_HEIGHT * data.body_scale
-	_visual.scale = Vector3(squash, stretch, squash) * data.body_scale
+	var size := _size_scale()
+	_visual.position.y = BODY_SIZE.y + lift * HOP_HEIGHT * size
+	_visual.scale = Vector3(squash, stretch, squash) * size
 
 
 func _finish(reached_goal: bool) -> void:
@@ -290,17 +318,25 @@ func _apply_visual() -> void:
 	# 色は頂点カラーではなく albedo_color 側で掛けて、メッシュは色違いで使い回す。
 	_visual.mesh = LowPoly.blob(BODY_SIZE, Color.WHITE, 0.1)
 	_visual.position.y = BODY_SIZE.y
-	_visual.scale = Vector3.ONE * data.body_scale
+	_visual.scale = Vector3.ONE * _size_scale()
 	# 敵ごとに色を変えるので、マテリアルはインスタンスごとに作る。
 	_material = LowPoly.vertex_color_material()
 	_visual.set_surface_override_material(0, _material)
 	_refresh_color()
 
 
+## HP 倍率ぶん大きくした体の倍率。
+func _size_scale() -> float:
+	return data.body_scale * minf(1.0 + (_hp_scale - 1.0) * HP_SIZE_GAIN, HP_SIZE_LIMIT)
+
+
 func _refresh_color() -> void:
 	if _material == null or data == null:
 		return
-	var color := data.body_color
+	# 硬い敵は暗く沈ませる。数値を出さずに「これは固い」を伝えるため。
+	var color := data.body_color.darkened(
+		minf((_hp_scale - 1.0) * 0.12, HP_DARKEN_LIMIT)
+	)
 	if _slow_factor < 1.0:
 		color = color.lerp(SLOW_TINT, SLOW_TINT_STRENGTH)
 	# フラッシュは減速の色にも上書きで乗せる。当たった事実のほうを優先して見せる。

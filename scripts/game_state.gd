@@ -17,14 +17,14 @@ signal upgrades_changed
 
 enum Result { PLAYING, WON, LOST }
 
-const START_GOLD := 120
+const START_GOLD := 1100
 ## ステージのデータが読めなかったときに使う保険の値。
 const START_LIVES := 20
 const CAMPAIGN_PATH := "res://resources/campaign.tres"
 
 ## 武器強化の段数の上限と、1 段ごとの費用。
 const WEAPON_MAX_LEVEL := 3
-const WEAPON_COSTS := [120, 200, 320]
+const WEAPON_COSTS := [480, 800, 1280]
 ## 1 段ごとにダメージが何割増えるか。
 ##
 ## 一律 +N ではなく割合にしてある。素のダメージが小さい盾兵（2）だけが

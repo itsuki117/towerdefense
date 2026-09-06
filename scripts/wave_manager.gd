@@ -146,18 +146,18 @@ func _spawn_entry(entry: WaveEntry) -> void:
 	for i in entry.count:
 		if GameState.is_over():
 			break
-		_spawn(entry.enemy_data)
+		_spawn(entry.enemy_data, entry.hp_scale)
 		if i < entry.count - 1:
 			await _wait(entry.spawn_interval)
 	_active_spawners -= 1
 
 
-func _spawn(data: EnemyData) -> void:
+func _spawn(data: EnemyData, hp_scale: float) -> void:
 	var enemy := enemy_scene.instantiate() as Enemy
 	if enemy == null:
 		return
 	# add_child より前に渡しておくと、敵の _ready で HP・見た目・出発点が確定する。
-	enemy.setup(_level.graph, data)
+	enemy.setup(_level.graph, data, hp_scale)
 	enemy.died.connect(_on_enemy_died)
 	enemy.reached_end.connect(_on_enemy_reached_end)
 	_enemy_parent().add_child(enemy)

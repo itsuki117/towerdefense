@@ -7,6 +7,10 @@ extends Node3D
 
 ## クリック判定を乗せる物理レイヤー（4 番 = tower）。カメラがこれを撃つ。
 const CLICK_LAYER := 8
+## 足止め中の敵を後回しにする量。道の全長より大きく取って、
+## 「動いている敵が射程内にいる限り必ずそちらを撃つ」ようにする。
+const BLOCKED_PENALTY := 1000.0
+
 ## クリック判定と石の土台の**最小**の大きさ。1 段目のタワーに合わせた値で、
 ## 上位ティアのモデルはこれより大きいので、実物を測って広げる（_measure_visual）。
 ## 段ごとに数値を書くと、モデルを差し替えるたびに書き直すことになる。
@@ -76,6 +80,12 @@ func _physics_process(_delta: float) -> void:
 ##
 ## 分岐があると「どれだけ進んだか」では順位が付かないので、
 ## A* が選んだ経路の残り距離で比べる（小さいほどゴールに近い）。
+##
+## **戦士に足止めされている敵は後回しにする。** 足止めされた敵はその場に
+## 留まり続けるので、素直に「ゴールに近い順」で撃つと全部のタワーが
+## その 1 体に張り付き、後ろの群れが素通りしてしまう
+## （検証で実測: 戦士を雇うとライフ 17 → 0 になった）。
+## 射程内に他に誰もいなければ、ちゃんとその敵を撃つ。
 func _find_target() -> Enemy:
 	var best: Enemy = null
 	var best_distance := INF
@@ -84,6 +94,8 @@ func _find_target() -> Enemy:
 		if enemy == null:
 			continue
 		var distance := enemy.get_distance_to_goal()
+		if enemy.is_blocked():
+			distance += BLOCKED_PENALTY
 		if distance < best_distance:
 			best_distance = distance
 			best = enemy

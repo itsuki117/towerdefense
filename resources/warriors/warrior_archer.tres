@@ -6,12 +6,13 @@
 script = ExtResource("1_warrior_data")
 display_name = "弓兵"
 role_text = "足止めしない。前列の後ろから遠くを撃つ"
-cost = 50
+cost = 75
 max_hp = 24
 damage = 3
 attack_rate = 1.5
 move_speed = 3.2
 attack_range = 4.5
+advance_limit = 6
 block_capacity = 0
 gear = 2
 body_scale = 0.92
