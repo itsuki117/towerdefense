@@ -64,6 +64,10 @@ func _ready() -> void:
 		return
 	if "steer" in OS.get_cmdline_user_args():
 		await _check_steering(main)
+	if "enemies" in OS.get_cmdline_user_args():
+		await _check_enemies(main)
+	if "endless" in OS.get_cmdline_user_args():
+		await _check_endless(main)
 
 
 ## 分かれ道で敵の流れがどう分かれるかを確かめる。
@@ -259,6 +263,66 @@ func _show_grid(main: Node, manager: BuildManager) -> void:
 	manager.set_physics_process(false)
 	level.get_node(^"BuildGridView").set_cursor(free[0], true)
 
+
+
+## 勝利画面から無限モードへ入れるかを確かめる。
+##
+## 無限モードは「最後まで守り切っても終わらない」だけの仕組みなので、
+## 見るのは (1) 勝利画面にボタンが出るか (2) 押すと 1 面目に戻り
+## 敵の硬さの倍率が上がるか、の 2 点。
+func _check_endless(main: Node) -> void:
+	GameState.stage = GameState.stage_count() - 1
+	GameState.clear_stage()
+	await get_tree().process_frame
+
+	var screen: Control = main.get_node(^"UI/ResultScreen")
+	var button: Button = screen.get_node(^"Panel/EndlessButton")
+	print("VisPreview: 勝利画面 表示=%s / 無限モードのボタン=%s（%s）" % [
+		screen.visible, button.visible, button.text,
+	])
+	print("VisPreview: 押す前  無限=%s 周回=%d 硬さ×%.2f ステージ %d" % [
+		GameState.endless, GameState.endless_round, GameState.difficulty_multiplier(),
+		GameState.stage_number(),
+	])
+	GameState.start_endless()
+	print("VisPreview: 押した後 無限=%s 周回=%d 硬さ×%.2f ステージ %d" % [
+		GameState.endless, GameState.endless_round, GameState.difficulty_multiplier(),
+		GameState.stage_number(),
+	])
+	# 1 周まわしたら硬さが上がることまで見る（advance_stage が巻き戻す）。
+	for i in GameState.stage_count():
+		GameState.advance_stage()
+	print("VisPreview: 1 周まわした後 周回=%d 硬さ×%.2f ステージ %d" % [
+		GameState.endless_round, GameState.difficulty_multiplier(), GameState.stage_number(),
+	])
+
+
+## 敵 4 種を並べて、見た目と装甲の効き方を確かめる。
+##
+## 装甲は「HP を増やす」のとは効き方が違う（1 発ごとに引かれるので、
+## 弱い弾を連射するほど損）。段の違うタワーで殴って、通る量の差を出す。
+func _check_enemies(main: Node) -> void:
+	var waves: WaveManager = main.get_node(^"WaveManager")
+	var files := ["enemy_normal", "enemy_fast", "enemy_armored", "enemy_boss"]
+	var tiers := ["tower_arrow", "tower_heavy", "tower_apex"]
+
+	print("VisPreview: --- 1 発で通るダメージ（硬さ 3.0 の波） ---")
+	for file_name in files:
+		var data := load("res://resources/enemies/%s.tres" % file_name) as EnemyData
+		var armor := maxi(roundi(float(data.armor) * sqrt(3.0)), 0) if data.armor > 0 else 0
+		var line := ""
+		for tier in tiers:
+			var tower := load("res://resources/towers/%s.tres" % tier) as TowerData
+			line += "  %s %d→%d" % [tower.display_name, tower.damage, maxi(tower.damage - armor, 1)]
+		print("VisPreview: %-14s HP %4d (×3 で %4d) / 装甲 %2d%s" % [
+			data.display_name, data.max_hp, roundi(data.max_hp * 3.0), armor, line,
+		])
+
+	# 見た目の確認用に道の上へ 1 体ずつ出す。
+	for file_name in files:
+		waves.call(&"_spawn", load("res://resources/enemies/%s.tres" % file_name), 3.0)
+		await get_tree().create_timer(1.6).timeout
+	print("VisPreview: 敵 %d 体を並べた" % get_tree().get_nodes_in_group(&"enemy").size())
 
 
 ## 戦士で敵の流れを寄せられるかを確かめる（分かれ道のあるステージ専用）。

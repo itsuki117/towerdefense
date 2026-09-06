@@ -18,6 +18,8 @@ extends SceneTree
 ## --gold         開始ゴールド。--stage と組み合わせて「そこまで貯めて来た」を作る。
 ## --campaign    ステージ 1 から最後まで通しで走らせる。インターバルでは
 ##               --upgrade の方針で強化を買い、ステージを作り直して続ける。
+## --endless     無限モードで走らせる（--campaign と一緒に使う）。周回を続け、
+##               1 周ごとに敵が硬くなる。どこで力尽きるかが結果になる。
 ## --upgrade     周回中の強化方針: none / tower / weapon / balanced（既定）。
 ##               balanced は「安いほうから買う」＝自然に交互になる。
 ##
@@ -86,6 +88,7 @@ func _initialize() -> void:
 	_tier = maxi(_int_arg(args, "--tier", _tier), 1)
 	_max_warriors = clampi(_int_arg(args, "--warriors", 0), 0, 8)
 	_campaign = args.has("--campaign")
+	var endless := args.has("--endless")
 	var start_stage := _int_arg(args, "--stage", 0)
 	var start_gold := _int_arg(args, "--gold", 0)
 	var index := args.find("--upgrade")
@@ -104,6 +107,9 @@ func _initialize() -> void:
 		_game_state.lives = _game_state.current_stage().lives
 	if start_gold > 0:
 		_game_state.gold = start_gold
+	if endless:
+		_game_state.endless = true
+		_game_state.endless_round = 1
 	_game_state.stage_cleared.connect(_on_stage_cleared)
 	_build_stage()
 	_apply_tier()
@@ -305,8 +311,11 @@ func _try_hire_warriors() -> void:
 
 func _record_stage(outcome: String) -> void:
 	var stage = _game_state.current_stage()
-	_stage_log.append("ステージ %d %-7s 波 %d/%d ／ ライフ %2d ／ タワー %2d 本 ／ %6.1f 秒 ／ 残り %d G" % [
-		_game_state.stage + 1, outcome, _game_state.wave,
+	var round_label := ""
+	if _game_state.endless:
+		round_label = "%d 周目 " % _game_state.endless_round
+	_stage_log.append("%sステージ %d %-7s 波 %d/%d ／ ライフ %2d ／ タワー %2d 本 ／ %6.1f 秒 ／ 残り %d G" % [
+		round_label, _game_state.stage + 1, outcome, _game_state.wave,
 		stage.waves.size() if stage != null else 0,
 		_game_state.lives, _built, _stage_elapsed, _game_state.gold,
 	])
@@ -332,6 +341,10 @@ func _report(outcome: String) -> void:
 	print("雇った戦士   = %d" % _hired)
 	print("タワーの段   = %s" % _game_state.current_tower(load(ARROW)).display_name)
 	print("武器 Lv      = %d" % _game_state.weapon_level)
+	if _game_state.endless:
+		print("無限モード   = %d 周目（敵の硬さ ×%.2f）" % [
+			_game_state.endless_round, _game_state.difficulty_multiplier(),
+		])
 	print("所持ゴールド = %d" % _game_state.gold)
 	print("同時に出た敵の最大数 = %d" % _peak_enemies)
 	print("経過ゲーム内時間 = %.1f 秒" % _elapsed)

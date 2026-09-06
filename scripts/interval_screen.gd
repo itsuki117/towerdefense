@@ -140,7 +140,11 @@ func _refresh_message() -> void:
 func _on_stage_cleared(stage_number: int, reward: int) -> void:
 	_reward = reward
 	_title.text = "STAGE %d CLEAR" % stage_number
-	var next_stage := GameState.campaign.stages[GameState.stage + 1] as StageData
+	if GameState.endless:
+		_title.text += "  （%d 周目）" % GameState.endless_round
+	# 無限モードで最後のステージを守り切ったときは 1 面目へ戻る。
+	var next_index := 0 if GameState.is_last_stage() else GameState.stage + 1
+	var next_stage := GameState.campaign.stages[next_index] as StageData
 	if next_stage != null:
 		_next_button.text = "次へ: %s" % next_stage.display_name
 	_refresh()

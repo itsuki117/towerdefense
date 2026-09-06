@@ -30,6 +30,17 @@ WAVE_DIR = os.path.join(ROOT, "resources", "waves")
 ## 出現間隔の下限。これを割ると同時に出る数が跳ね上がる。
 MIN_INTERVAL = 0.3
 
+## 使える敵種。キーが波の定義で使う名前、値が (.tres 名, 撃破ゴールド)。
+##
+## 撃破ゴールドは EnemyData 側の値の写し。**収入の見積もりに使うだけ**なので、
+## .tres を触ったらここも直すこと（検算の出力がずれるだけで、ゲームには影響しない）。
+ENEMY_TYPES = {
+    "normal": ("enemy_normal", 9),
+    "fast": ("enemy_fast", 13),
+    "armored": ("enemy_armored", 16),
+    "boss": ("enemy_boss", 140),
+}
+
 # --- 波の定義 -----------------------------------------------------------------
 # 1 波 = {
 #   "normal": (数, 間隔),
@@ -71,26 +82,26 @@ STAGES = {
         {"normal": (6, 1.1), "fast": (2, 1.0, 3.0), "hp": 1.2, "delay": 5.5},
         {"normal": (9, 1.0), "fast": (3, 0.9, 3.0), "hp": 1.3, "delay": 5.5},
         {"normal": (12, 0.95), "fast": (5, 0.85, 3.0), "hp": 1.4, "delay": 5.0},
-        {"normal": (15, 0.9), "fast": (7, 0.8, 2.5), "hp": 1.6, "delay": 5.0},
-        {"normal": (18, 0.85), "fast": (9, 0.75, 2.5), "hp": 1.8, "delay": 4.5},
-        {"normal": (21, 0.8), "fast": (12, 0.7, 2.5), "hp": 2.0, "delay": 4.5},
-        {"normal": (25, 0.7), "fast": (15, 0.6, 2.0), "hp": 2.1, "delay": 4.0},
-        {"normal": (29, 0.65), "fast": (19, 0.55, 2.0), "hp": 2.3, "delay": 4.0},
+        {"normal": (13, 0.9), "fast": (7, 0.8, 2.5), "armored": (2, 1.4, 4.0), "hp": 1.6, "delay": 5.0},
+        {"normal": (15, 0.85), "fast": (9, 0.75, 2.5), "armored": (3, 1.4, 4.0), "hp": 1.8, "delay": 4.5},
+        {"normal": (17, 0.8), "fast": (12, 0.7, 2.5), "armored": (4, 1.4, 4.0), "hp": 2.0, "delay": 4.5},
+        {"normal": (20, 0.7), "fast": (15, 0.6, 2.0), "armored": (5, 1.4, 4.0), "hp": 2.1, "delay": 4.0},
+        {"normal": (23, 0.65), "fast": (19, 0.55, 2.0), "armored": (6, 1.4, 4.0), "boss": (1, 3.0, 8.0), "hp": 2.3, "delay": 4.0},
     ],
     # ステージ 3 — 最終ステージ。分かれ道なので敵が 2 手に散る（＝守りが薄まる）。
     # 波数も 10 に増やして、持ちこたえる長さそのものも難度にしている。
     # ここでも数は増やさず、硬さで上げる。序盤を軽くするのはステージ 2 と同じ理由。
     3: [
-        {"normal": (8, 1.0), "fast": (3, 0.9, 2.5), "hp": 2.6, "delay": 5.5},
-        {"normal": (11, 0.95), "fast": (5, 0.85, 2.5), "hp": 2.8, "delay": 5.0},
-        {"normal": (14, 0.9), "fast": (7, 0.8, 2.5), "hp": 3, "delay": 5.0},
-        {"normal": (17, 0.85), "fast": (9, 0.75, 2.0), "hp": 3.2, "delay": 4.5},
-        {"normal": (20, 0.8), "fast": (11, 0.7, 2.0), "hp": 3.5, "delay": 4.5},
-        {"normal": (23, 0.75), "fast": (14, 0.65, 2.0), "hp": 3.7, "delay": 4.5},
-        {"normal": (26, 0.7), "fast": (17, 0.6, 2.0), "hp": 3.9, "delay": 4.0},
-        {"normal": (30, 0.65), "fast": (20, 0.55, 1.5), "hp": 4.1, "delay": 4.0},
-        {"normal": (34, 0.6), "fast": (24, 0.5, 1.5), "hp": 4.3, "delay": 3.5},
-        {"normal": (40, 0.55), "fast": (29, 0.45, 1.5), "hp": 4.5, "delay": 3.5},
+        {"normal": (6, 1.0), "fast": (3, 0.9, 2.5), "armored": (2, 1.4, 4.0), "hp": 2.6, "delay": 5.5},
+        {"normal": (8, 0.95), "fast": (5, 0.85, 2.5), "armored": (3, 1.4, 4.0), "hp": 2.8, "delay": 5.0},
+        {"normal": (11, 0.9), "fast": (7, 0.8, 2.5), "armored": (3, 1.4, 4.0), "hp": 3, "delay": 5.0},
+        {"normal": (13, 0.85), "fast": (9, 0.75, 2.0), "armored": (4, 1.4, 4.0), "hp": 3.2, "delay": 4.5},
+        {"normal": (15, 0.8), "fast": (11, 0.7, 2.0), "armored": (5, 1.4, 4.0), "hp": 3.4, "delay": 4.5},
+        {"normal": (18, 0.75), "fast": (14, 0.65, 2.0), "armored": (5, 1.4, 4.0), "hp": 3.5, "delay": 4.5},
+        {"normal": (20, 0.7), "fast": (17, 0.6, 2.0), "armored": (6, 1.4, 4.0), "hp": 3.6, "delay": 4.0},
+        {"normal": (23, 0.65), "fast": (20, 0.55, 1.5), "armored": (7, 1.4, 4.0), "boss": (1, 3.0, 8.0), "hp": 3.7, "delay": 4.0},
+        {"normal": (26, 0.6), "fast": (24, 0.5, 1.5), "armored": (8, 1.4, 4.0), "hp": 3.8, "delay": 3.5},
+        {"normal": (31, 0.55), "fast": (29, 0.45, 1.5), "armored": (9, 1.4, 4.0), "boss": (1, 3.0, 8.0), "hp": 3.9, "delay": 3.5},
     ],
 }
 
@@ -107,24 +118,31 @@ def wave_numbers(stage):
 
 # --- 検算 ---------------------------------------------------------------------
 
+def entries_of(wave):
+    """その波に含まれる (種名, 数, 間隔, 遅らせる秒) を順に返す。"""
+    result = []
+    for name in ENEMY_TYPES:
+        spec = wave.get(name)
+        if spec is None:
+            continue
+        count, interval = spec[0], spec[1]
+        delay = spec[2] if len(spec) > 2 else 0.0
+        result.append((name, count, interval, delay))
+    return result
+
+
 def total_enemies(wave):
-    total = wave["normal"][0]
-    if wave["fast"] is not None:
-        total += wave["fast"][0]
-    return total
+    return sum(entry[1] for entry in entries_of(wave))
 
 
-## 撃破ゴールド（EnemyData の gold_value）。**数を据え置く方針の確認に使う。**
-GOLD_NORMAL = 9
-GOLD_FAST = 13
+## 撃破ゴールド。**数を据え置く方針の確認に使う。**
 
 
 def stage_gold(stage):
     total = 0
     for wave in STAGES[stage]:
-        total += wave["normal"][0] * GOLD_NORMAL
-        if wave["fast"] is not None:
-            total += wave["fast"][0] * GOLD_FAST
+        for name, count, _interval, _delay in entries_of(wave):
+            total += count * ENEMY_TYPES[name][1]
     return total
 
 
@@ -183,27 +201,25 @@ def entry_text(name, resource_id, count, interval, start_delay, hp_scale):
 
 
 def wave_text(wave):
+    entries = entries_of(wave)
     header = [
         '[gd_resource type="Resource" script_class="WaveData" load_steps=%d format=3]'
-        % (5 if wave["fast"] is not None else 4),
+        % (3 + len(entries)),
         "",
         '[ext_resource type="Script" path="res://scripts/data/wave_data.gd" id="1_wave_data"]',
         '[ext_resource type="Script" path="res://scripts/data/wave_entry.gd" id="2_wave_entry"]',
-        '[ext_resource type="Resource" path="res://resources/enemies/enemy_normal.tres" id="3_enemy_normal"]',
     ]
-    if wave["fast"] is not None:
+    body = []
+    refs = []
+    for index, (name, count, interval, delay) in enumerate(entries):
+        file_name = ENEMY_TYPES[name][0]
+        resource_id = "%d_%s" % (index + 3, file_name)
         header.append(
-            '[ext_resource type="Resource" path="res://resources/enemies/enemy_fast.tres"'
-            ' id="4_enemy_fast"]'
+            '[ext_resource type="Resource" path="res://resources/enemies/%s.tres" id="%s"]'
+            % (file_name, resource_id)
         )
-    body = ["", entry_text(
-        "normal", "3_enemy_normal", wave["normal"][0], wave["normal"][1], 0.0, wave["hp"]
-    )]
-    refs = ['SubResource("Resource_entry_normal")']
-    if wave["fast"] is not None:
-        count, interval, delay = wave["fast"]
-        body += ["", entry_text("fast", "4_enemy_fast", count, interval, delay, wave["hp"])]
-        refs.append('SubResource("Resource_entry_fast")')
+        body += ["", entry_text(name, resource_id, count, interval, delay, wave["hp"])]
+        refs.append('SubResource("Resource_entry_%s")' % name)
     tail = [
         "",
         "[resource]",

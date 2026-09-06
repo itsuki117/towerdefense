@@ -25,6 +25,13 @@ const CAMPAIGN_PATH := "res://resources/campaign.tres"
 ## 武器強化の段数の上限と、1 段ごとの費用。
 const WEAPON_MAX_LEVEL := 3
 const WEAPON_COSTS := [480, 800, 1280]
+## 無限モードで 1 周ごとに敵の硬さへ掛かる増分。
+##
+## ステージの中身（波・道・報酬）は作り直さず、**硬さの倍率だけを乗せて周回する**。
+## 波を無限に用意することはできないし、用意しても後半は数の暴力にしかならない。
+## 硬さなら 1 つの数値で伸ばせて、獲得ゴールドは増えないので稼ぎも自然に締まる。
+const ENDLESS_STEP := 0.35
+
 ## 1 段ごとにダメージが何割増えるか。
 ##
 ## 一律 +N ではなく割合にしてある。素のダメージが小さい盾兵（2）だけが
@@ -44,6 +51,11 @@ var campaign: CampaignData = null
 var tower_tiers: Dictionary = {}
 ## 戦士の武器強化の段。全役職に同じ割合で掛かる。
 var weapon_level: int = 0
+
+## 無限モードに入っているか。最後のステージを守り切っても終わらなくなる。
+var endless: bool = false
+## 無限モードで何周目か（1 始まり）。敵の硬さに効く。
+var endless_round: int = 0
 
 ## 今いるステージ（0 始まり）。**周回に属する状態**なので、
 ## ステージを作り直しても（シーンを読み直しても）ここは残る。
@@ -116,12 +128,28 @@ func is_last_stage() -> bool:
 	return stage_number() >= stage_count()
 
 
+## 波の硬さに掛かる倍率。通常の周回では 1.0。
+func difficulty_multiplier() -> float:
+	return 1.0 + ENDLESS_STEP * float(maxi(endless_round - 1, 0))
+
+
+## 勝利画面から無限モードへ入る。**ゴールドと強化は持ったまま**、
+## ステージ 1 から周り直す。負けたら終わり（セーブは持たない）。
+func start_endless() -> void:
+	endless = true
+	endless_round = 1
+	stage = 0
+	_reset_stage_state()
+
+
 ## 周回をはじめからやり直す。負けたら強化もゴールドも失う（セーブは持たない）。
 func reset_run() -> void:
 	stage = 0
 	gold = START_GOLD
 	tower_tiers.clear()
 	weapon_level = 0
+	endless = false
+	endless_round = 0
 	upgrades_changed.emit()
 	_reset_stage_state()
 
@@ -176,8 +204,16 @@ func upgrade_weapon() -> bool:
 
 
 ## 次のステージへ進む。ゴールドは持ち越し、ライフとウェーブは仕切り直す。
+##
+## 無限モードでは最後まで行ったら 1 面目へ戻り、周回数を 1 つ進める
+## （＝敵が硬くなる）。
 func advance_stage() -> void:
 	if is_last_stage():
+		if not endless:
+			return
+		endless_round += 1
+		stage = 0
+		_reset_stage_state()
 		return
 	stage += 1
 	_reset_stage_state()
@@ -190,11 +226,23 @@ func clear_stage() -> void:
 		return
 	var data := current_stage()
 	var reward: int = data.clear_reward if data != null else 0
+	# 最後のステージには報酬を置いていない（そこで終わるので）。
+	# 無限モードでは終わらないので、1 つ前のステージと同じだけ渡す。
+	if reward <= 0 and endless and is_last_stage():
+		reward = _previous_stage_reward()
 	add_gold(reward)
-	if is_last_stage():
+	if is_last_stage() and not endless:
 		_finish(Result.WON)
 	else:
 		stage_cleared.emit(stage_number(), reward)
+
+
+func _previous_stage_reward() -> int:
+	_ensure_campaign()
+	if campaign == null or stage <= 0:
+		return 0
+	var previous := campaign.stages[stage - 1] as StageData
+	return previous.clear_reward if previous != null else 0
 
 
 ## ステージごとに作り直す状態だけを戻す。ゴールドとステージ番号は触らない。

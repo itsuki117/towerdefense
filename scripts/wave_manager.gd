@@ -146,7 +146,8 @@ func _spawn_entry(entry: WaveEntry) -> void:
 	for i in entry.count:
 		if GameState.is_over():
 			break
-		_spawn(entry.enemy_data, entry.hp_scale)
+		# 無限モードの周回数ぶん硬くする。波のデータ自体は作り直さない。
+		_spawn(entry.enemy_data, entry.hp_scale * GameState.difficulty_multiplier())
 		if i < entry.count - 1:
 			await _wait(entry.spawn_interval)
 	_active_spawners -= 1

@@ -179,7 +179,11 @@ func _on_lives_changed(value: int) -> void:
 
 
 func _on_wave_changed(value: int) -> void:
-	_wave_label.text = "WAVE  %d" % value
+	if GameState.endless:
+		# 無限モードでは何周目かが実質のスコアなので、そちらを前に出す。
+		_wave_label.text = "ROUND %d   WAVE %d" % [GameState.endless_round, value]
+	else:
+		_wave_label.text = "WAVE  %d" % value
 
 
 ## 買えないタワーのボタンは押せなくする。選択中に買えなくなったら選択も解除する。

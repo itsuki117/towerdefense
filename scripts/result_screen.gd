@@ -11,6 +11,7 @@ const COLOR_LOSE := Color(0.96, 0.5, 0.5)
 @onready var _title: Label = $Panel/TitleLabel
 @onready var _message: Label = $Panel/MessageLabel
 @onready var _restart_button: Button = $Panel/RestartButton
+@onready var _endless_button: Button = $Panel/EndlessButton
 
 
 func _ready() -> void:
@@ -18,16 +19,29 @@ func _ready() -> void:
 	GameState.game_won.connect(_on_game_won)
 	GameState.game_over.connect(_on_game_over)
 	_restart_button.pressed.connect(_on_restart_pressed)
+	_endless_button.pressed.connect(_on_endless_pressed)
+	_endless_button.hide()
 
 
 func _on_game_won() -> void:
 	Sfx.play(&"victory")
+	# 勝ってからが無限モードの入り口。ゴールドと強化を持ったまま続けられる。
+	_endless_button.show()
 	_show_result("VICTORY", "全 %d ステージを守りきった" % GameState.stage_count(), COLOR_WIN)
 
 
 func _on_game_over() -> void:
 	Sfx.play(&"defeat")
-	_show_result("DEFEAT", "クリスタルが破壊された", COLOR_LOSE)
+	_show_result("DEFEAT", _defeat_message(), COLOR_LOSE)
+
+
+## 無限モードで倒れたときは、どこまで行けたかがそのまま記録になる。
+func _defeat_message() -> String:
+	if not GameState.endless:
+		return "クリスタルが破壊された"
+	return "無限モード %d 周目 ／ ステージ %d ／ ウェーブ %d で力尽きた" % [
+		GameState.endless_round, GameState.stage_number(), GameState.wave,
+	]
 
 
 func _show_result(title: String, message: String, color: Color) -> void:
@@ -37,6 +51,12 @@ func _show_result(title: String, message: String, color: Color) -> void:
 	show()
 	_restart_button.grab_focus()
 	get_tree().paused = true
+
+
+func _on_endless_pressed() -> void:
+	get_tree().paused = false
+	GameState.start_endless()
+	get_tree().call_deferred(&"reload_current_scene")
 
 
 func _on_restart_pressed() -> void:

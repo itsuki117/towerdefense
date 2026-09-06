@@ -37,6 +37,10 @@ const PASSING_REACH := 0.85
 ## 足止めされている敵が受けるダメージの割り増し。
 const HELD_DAMAGE_BONUS := 0.5
 
+## 装甲の帯を体より何倍太くするか、体の高さの何割にするか。
+const ARMOR_SHELL_SCALE := 1.22
+const ARMOR_SHELL_HEIGHT := 0.6
+
 ## HP 倍率を体の大きさへ何割ぶん効かせるか。
 ## 硬い敵がまったく同じ見た目だと、なぜ倒せないのか分からない。
 ## 効かせすぎると道からはみ出すので、上限も置く。
@@ -174,6 +178,14 @@ func _place_on_edge(length: float) -> void:
 		look_at(position + forward, Vector3.UP)
 
 
+## 今の装甲。硬さ (hp_scale) に平方根で連れて上がる。
+## 硬さと同じ倍率で上げると、後半は弱い弾が 1 ダメージ固定になって何も通らなくなる。
+func _armor() -> int:
+	if data == null or data.armor <= 0:
+		return 0
+	return maxi(roundi(float(data.armor) * sqrt(_hp_scale)), 1)
+
+
 ## 戦士に与えるダメージ。硬さ (hp_scale) に**平方根で**連れて上がる。
 ##
 ## 上げないと、後半は倒せないだけで殴られもしない敵になり、
@@ -251,6 +263,9 @@ func take_damage(amount: int) -> void:
 	# 強い状態が続いていたので、戦士がタワーの火力を増やす形にした。
 	if is_blocked():
 		amount = maxi(roundi(float(amount) * (1.0 + HELD_DAMAGE_BONUS)), 1)
+	# 装甲は**割り増しのあと**に引く。的が大きいことと硬いことは別の話なので、
+	# 順番を逆にすると装甲のぶんまで割り増しが乗ってしまう。
+	amount = maxi(amount - _armor(), 1)
 	_flash_remaining = FLASH_TIME
 	_refresh_color()
 	Sfx.play(&"hit", -7.0)
@@ -338,7 +353,29 @@ func _apply_visual() -> void:
 	# 敵ごとに色を変えるので、マテリアルはインスタンスごとに作る。
 	_material = LowPoly.vertex_color_material()
 	_visual.set_surface_override_material(0, _material)
+	_add_armor_shell()
 	_refresh_color()
+
+
+## 装甲持ちにかぶせる殻。**硬い敵は見た目でも硬く**しないと、
+## なぜ弾が通らないのか分からない。体より一回り大きい塊を重ねるだけ。
+func _add_armor_shell() -> void:
+	if data.armor <= 0:
+		return
+	var shell := MeshInstance3D.new()
+	shell.name = "ArmorShell"
+	# 体をすっぽり覆うのではなく、**腰まわりの帯**にする。全部覆うと元の体色が
+	# 見えなくなって敵種が分からなくなるし、上に乗せると帽子に見えた。
+	shell.mesh = LowPoly.blob(
+		Vector3(BODY_SIZE.x * ARMOR_SHELL_SCALE, BODY_SIZE.y * ARMOR_SHELL_HEIGHT,
+			BODY_SIZE.z * ARMOR_SHELL_SCALE),
+		Color.WHITE, 0.16, 7.0
+	)
+	# 体と同じ原点。_visual の squash がそのまま殻にも掛かる。
+	var material := LowPoly.vertex_color_material()
+	material.albedo_color = data.armor_color
+	shell.set_surface_override_material(0, material)
+	_visual.add_child(shell)
 
 
 ## HP 倍率ぶん大きくした体の倍率。

@@ -460,6 +460,13 @@ theme_override_font_sizes/font_size = 22
 text = "全 8 波を守りきった"
 horizontal_alignment = 1
 
+[node name="EndlessButton" type="Button" parent="UI/ResultScreen/Panel"]
+custom_minimum_size = Vector2(300, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 22
+text = "無限モードへ（強化を持ち越す）"
+
 [node name="RestartButton" type="Button" parent="UI/ResultScreen/Panel"]
 custom_minimum_size = Vector2(220, 56)
 layout_mode = 2

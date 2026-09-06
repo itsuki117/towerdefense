@@ -1,16 +1,17 @@
-[gd_resource type="Resource" script_class="WaveData" load_steps=5 format=3]
+[gd_resource type="Resource" script_class="WaveData" load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/wave_data.gd" id="1_wave_data"]
 [ext_resource type="Script" path="res://scripts/data/wave_entry.gd" id="2_wave_entry"]
 [ext_resource type="Resource" path="res://resources/enemies/enemy_normal.tres" id="3_enemy_normal"]
 [ext_resource type="Resource" path="res://resources/enemies/enemy_fast.tres" id="4_enemy_fast"]
+[ext_resource type="Resource" path="res://resources/enemies/enemy_armored.tres" id="5_enemy_armored"]
 
 [sub_resource type="Resource" id="Resource_entry_normal"]
 script = ExtResource("2_wave_entry")
 enemy_data = ExtResource("3_enemy_normal")
-count = 20
+count = 15
 spawn_interval = 0.8
-hp_scale = 3.5
+hp_scale = 3.4
 
 [sub_resource type="Resource" id="Resource_entry_fast"]
 script = ExtResource("2_wave_entry")
@@ -18,9 +19,17 @@ enemy_data = ExtResource("4_enemy_fast")
 count = 11
 spawn_interval = 0.7
 start_delay = 2.0
-hp_scale = 3.5
+hp_scale = 3.4
+
+[sub_resource type="Resource" id="Resource_entry_armored"]
+script = ExtResource("2_wave_entry")
+enemy_data = ExtResource("5_enemy_armored")
+count = 5
+spawn_interval = 1.4
+start_delay = 4.0
+hp_scale = 3.4
 
 [resource]
 script = ExtResource("1_wave_data")
-entries = [SubResource("Resource_entry_normal"), SubResource("Resource_entry_fast")]
+entries = [SubResource("Resource_entry_normal"), SubResource("Resource_entry_fast"), SubResource("Resource_entry_armored")]
 next_wave_delay = 4.5
