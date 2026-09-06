@@ -90,18 +90,25 @@ func _report_buttons() -> void:
 func _build_towers() -> void:
 	print("\n========== BUILD ==========")
 	var manager := root.get_node_or_null(^"Main/BuildManager")
+	var level := root.get_node_or_null(^"Main/Level")
+	# 盤面は道に近い順に並んでいるが、それだと出口側のマスが先に来て、
+	# 短い観測時間の中では敵がそこまで届かない。湧き口に近い順に並べ直す。
+	var spawn: Vector3 = level.graph.position_of(level.graph.spawn_node())
+	var cells: Array = level.grid.free_cells()
+	cells.sort_custom(func(a, b):
+		return level.grid.placement_of(a).distance_to(spawn) 			< level.grid.placement_of(b).distance_to(spawn))
+	print("置けるマス = %d（湧き口に近い順）" % cells.size())
 	var plan := [
-		["Main/Level/BuildSpots/BuildSpot1", "res://resources/towers/tower_arrow.tres"],
-		["Main/Level/BuildSpots/BuildSpot2", "res://resources/towers/tower_frost.tres"],
+		"res://resources/towers/tower_arrow.tres",
+		"res://resources/towers/tower_frost.tres",
 	]
-	for entry in plan:
-		var spot := root.get_node_or_null(NodePath(entry[0]))
-		var data := load(entry[1])
+	for i in plan.size():
+		var data := load(plan[i])
 		var before: int = _game_state.gold
 		manager.call(&"select_tower", data)
-		manager.call(&"_try_build", spot)
-		print("%s: gold %d -> %d, occupied=%s" % [
-			data.display_name, before, _game_state.gold, spot.call(&"is_occupied"),
+		var built: bool = manager.call(&"build_at", cells[i])
+		print("%s: %s gold %d -> %d, 建った=%s" % [
+			data.display_name, cells[i], before, _game_state.gold, built,
 		])
 
 	var towers := root.get_node_or_null(^"Main/Towers")

@@ -8,11 +8,24 @@ extends Resource
 @export var display_name: String = "Enemy"
 ## 最大 HP。
 @export var max_hp: int = 10
+## 1 発ごとに差し引く装甲。**HP を増やすのとは効き方が違う。**
+##
+## HP を増やすと「弱い弾をたくさん」でも「強い弾を少し」でも同じだけ効くが、
+## 装甲は 1 発ごとに引かれるので、**弱い弾を連射するほど損**になる。
+## タワーの段を上げる理由（1 発が重くなる）を作るための数値。
+## 波ごとの硬さ (WaveEntry.hp_scale) には平方根で連れて上がる。
+@export var armor: int = 0
 ## 移動速度 (m/秒)。Path3D 上の progress をこの速度で進める。
 @export_range(0.5, 20.0, 0.1) var speed: float = 2.5
 ## 撃破時にプレイヤーへ入るゴールド。
 @export var gold_value: int = 5
 ## 拠点に到達されたときに減るライフ。
 @export var damage: int = 1
+## 足止めしてきた戦士に与えるダメージ。
+@export var melee_damage: int = 4
+## 戦士への攻撃レート (回/秒)。
+@export_range(0.1, 5.0, 0.1) var attack_rate: float = 1.0
 @export var body_color: Color = Color(0.35, 0.75, 0.4)
 @export_range(0.1, 2.0, 0.05) var body_scale: float = 1.0
+## 装甲を持つ敵にかぶせる殻の色。armor が 0 なら使われない。
+@export var armor_color: Color = Color(0.62, 0.66, 0.72)

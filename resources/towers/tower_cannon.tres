@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="1_tower_data"]
+[ext_resource type="PackedScene" path="res://scenes/tower_cannon.tscn" id="2_scene"]
+[ext_resource type="Resource" path="res://resources/towers/tower_heavy.tres" id="3_next"]
+
+[resource]
+script = ExtResource("1_tower_data")
+display_name = "キャノンタワー"
+tier = 2
+tower_scene = ExtResource("2_scene")
+cost = 250
+damage = 7
+attack_range = 6.5
+fire_rate = 1.6
+projectile_speed = 19.0
+effect = 0
+body_color = Color(0.88, 0.66, 0.32, 1)
+upgrade_cost = 960
+next_tier = ExtResource("3_next")

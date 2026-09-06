@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy_data"]
+
+[resource]
+script = ExtResource("1_enemy_data")
+display_name = "装甲スライム"
+max_hp = 40
+armor = 2
+speed = 1.9
+gold_value = 16
+damage = 1
+melee_damage = 6
+attack_rate = 0.9
+body_color = Color(0.46, 0.52, 0.62, 1)
+body_scale = 1.05
+armor_color = Color(0.74, 0.78, 0.84, 1)

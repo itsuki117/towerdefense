@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="StageData" load_steps=11 format=3]
+
+
+[ext_resource type="Script" path="res://scripts/data/stage_data.gd" id="1_stage_data"]
+[ext_resource type="Resource" path="res://resources/stages/stage_02_route.tres" id="2_route"]
+[ext_resource type="Resource" path="res://resources/waves/wave_09.tres" id="3_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_10.tres" id="4_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_11.tres" id="5_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_12.tres" id="6_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_13.tres" id="7_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_14.tres" id="8_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_15.tres" id="9_wave"]
+[ext_resource type="Resource" path="res://resources/waves/wave_16.tres" id="10_wave"]
+
+[resource]
+script = ExtResource("1_stage_data")
+display_name = "ステージ 2 — 回り込む道"
+route = ExtResource("2_route")
+waves = [ExtResource("3_wave"), ExtResource("4_wave"), ExtResource("5_wave"), ExtResource("6_wave"), ExtResource("7_wave"), ExtResource("8_wave"), ExtResource("9_wave"), ExtResource("10_wave")]
+lives = 20
+clear_reward = 3400

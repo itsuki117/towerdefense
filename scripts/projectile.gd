@@ -45,6 +45,7 @@ func _physics_process(delta: float) -> void:
 
 
 func _hit() -> void:
+	Burst.spawn(self, global_position, Burst.Kind.HIT, _data.body_color)
 	# 追加効果を先に入れる。take_damage で敵が撃破処理に入ると、
 	# その後の apply_slow は無視されるため。
 	if _data.effect == TowerData.Effect.SLOW and _target.has_method(&"apply_slow"):
