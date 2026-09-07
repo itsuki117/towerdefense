@@ -59,6 +59,8 @@ func _ready() -> void:
 		await _check_interval(main)
 	if "dev" in OS.get_cmdline_user_args():
 		_check_dev_panel(main)
+	if "pause" in OS.get_cmdline_user_args():
+		_check_pause(main)
 
 	_report_stage(main)
 	# `-- stage3` のように番号を付けると、そのステージに着くまで進める。
@@ -395,6 +397,16 @@ func _check_dev_panel(main: Node) -> void:
 	panel.get_node(^"SpeedButton").pressed.emit()
 	print("VisPreview: 早送り time_scale=%.1f" % Engine.time_scale)
 	Engine.time_scale = 1.0
+
+
+## 一時停止ボタン。開いたらツリーが止まり、再開ボタンで戻るかを確かめる。
+func _check_pause(main: Node) -> void:
+	var hud: Control = main.get_node(^"UI/HUD")
+	var screen: Control = main.get_node(^"UI/PauseScreen")
+	(hud.get_node(^"PauseButton") as Button).pressed.emit()
+	print("VisPreview: 一時停止 表示=%s ポーズ=%s" % [screen.visible, get_tree().paused])
+	(screen.get_node(^"Panel/ResumeButton") as Button).pressed.emit()
+	print("VisPreview: 再開後 表示=%s ポーズ=%s" % [screen.visible, get_tree().paused])
 
 
 ## インターバルの強化を確かめる。行の中身と、押したときに段が上がるかまで見る。

@@ -18,6 +18,7 @@ extends Control
 @export var wave_manager_path: NodePath
 @export var warrior_manager_path: NodePath
 @export var help_screen_path: NodePath
+@export var pause_screen_path: NodePath
 
 @onready var _gold_label: Label = $Stats/GoldLabel
 @onready var _lives_label: Label = $Stats/LivesLabel
@@ -27,6 +28,7 @@ extends Control
 @onready var _next_wave_button: Button = $NextWaveButton
 @onready var _fullscreen_button: Button = $FullscreenButton
 @onready var _help_button: Button = $HelpButton
+@onready var _pause_button: Button = $PauseButton
 
 var _build_manager: BuildManager = null
 var _wave_manager: WaveManager = null
@@ -55,10 +57,14 @@ func _ready() -> void:
 	var help_screen := get_node_or_null(help_screen_path)
 	if help_screen != null:
 		_help_button.pressed.connect(help_screen.open)
+	var pause_screen := get_node_or_null(pause_screen_path)
+	if pause_screen != null:
+		_pause_button.pressed.connect(pause_screen.open)
 
 	GameState.gold_changed.connect(_on_gold_changed)
 	GameState.lives_changed.connect(_on_lives_changed)
 	GameState.wave_changed.connect(_on_wave_changed)
+	GameState.stage_changed.connect(_on_stage_changed)
 	GameState.game_over.connect(_on_game_finished)
 	GameState.game_won.connect(_on_game_finished)
 	GameState.upgrades_changed.connect(_on_upgrades_changed)
@@ -198,12 +204,19 @@ func _on_lives_changed(value: int) -> void:
 	_lives_label.text = "LIVES  %d" % value
 
 
-func _on_wave_changed(value: int) -> void:
+## ステージ番号が出ていないという指摘があったため、WAVE の表示にステージも足す。
+## stage_changed でも呼ぶ必要があるので、値は引数で受けず GameState から読み直す。
+func _on_wave_changed(_value: int) -> void:
+	var stage_part := "STAGE %d/%d" % [GameState.stage_number(), GameState.stage_count()]
 	if GameState.endless:
 		# 無限モードでは何周目かが実質のスコアなので、そちらを前に出す。
-		_wave_label.text = "ROUND %d   WAVE %d" % [GameState.endless_round, value]
+		_wave_label.text = "ROUND %d   %s   WAVE %d" % [GameState.endless_round, stage_part, GameState.wave]
 	else:
-		_wave_label.text = "WAVE  %d" % value
+		_wave_label.text = "%s   WAVE %d" % [stage_part, GameState.wave]
+
+
+func _on_stage_changed(_index: int) -> void:
+	_on_wave_changed(GameState.wave)
 
 
 ## 買えないタワーのボタンは押せなくする。選択中に買えなくなったら選択も解除する。

@@ -21,6 +21,7 @@
 [ext_resource type="Script" path="res://scripts/result_screen.gd" id="17_result_screen"]
 [ext_resource type="Script" path="res://scripts/dev_panel.gd" id="31_dev_panel"]
 [ext_resource type="Script" path="res://scripts/help_screen.gd" id="32_help_screen"]
+[ext_resource type="Script" path="res://scripts/pause_screen.gd" id="33_pause_screen"]
 [ext_resource type="Script" path="res://scripts/camera_rig.gd" id="18_camera_rig"]
 [ext_resource type="Resource" path="res://resources/towers/tower_frost.tres" id="19_tower_frost"]
 
@@ -203,6 +204,7 @@ warrior_options = [ExtResource("29_warrior_shield"), ExtResource("28_warrior_gua
 wave_manager_path = NodePath("../../WaveManager")
 warrior_manager_path = NodePath("../../WarriorManager")
 help_screen_path = NodePath("../HelpScreen")
+pause_screen_path = NodePath("../PauseScreen")
 
 [node name="Stats" type="VBoxContainer" parent="UI/HUD" unique_id=506892068]
 layout_mode = 1
@@ -262,6 +264,19 @@ focus_mode = 0
 theme_override_font_sizes/font_size = 20
 text = "?"
 tooltip_text = "遊び方"
+
+[node name="PauseButton" type="Button" parent="UI/HUD"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 1
+anchors_preset = 0
+offset_left = 132.0
+offset_top = 128.0
+offset_right = 172.0
+offset_bottom = 168.0
+focus_mode = 0
+theme_override_font_sizes/font_size = 18
+text = "⏸"
+tooltip_text = "一時停止"
 
 [node name="NextWaveButton" type="Button" parent="UI/HUD"]
 custom_minimum_size = Vector2(200, 52)
@@ -587,3 +602,53 @@ layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 20
 text = "閉じる"
+
+[node name="PauseScreen" type="Control" parent="UI"]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("33_pause_screen")
+
+[node name="Dim" type="ColorRect" parent="UI/PauseScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.07, 0.1, 0.7)
+
+[node name="Panel" type="VBoxContainer" parent="UI/PauseScreen"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -160.0
+offset_top = -90.0
+offset_right = 160.0
+offset_bottom = 90.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="UI/PauseScreen/Panel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 32
+text = "一時停止中"
+horizontal_alignment = 1
+
+[node name="ResumeButton" type="Button" parent="UI/PauseScreen/Panel"]
+custom_minimum_size = Vector2(220, 56)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 22
+text = "再開"
