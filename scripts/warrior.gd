@@ -50,6 +50,11 @@ var _graph: RouteGraph = null
 var _hp: int = 1
 var _finished: bool = false
 var _material: StandardMaterial3D = null
+## data.model_scene を使っているときだけ埋まる。被弾フラッシュ用に、
+## モデルの全マテリアルを複製して {"material": StandardMaterial3D, "base": Color} で持つ。
+## 手続き生成は _material 1 つの色を差し替えるだけで済むが、
+## モデルは部位ごとに複数のマテリアルを持つので、同じ見せ方をするには全部を回す必要がある。
+var _model_materials: Array[Dictionary] = []
 ## 今いる辺（_from_node から _to_node へ）と、その辺をどれだけ進んだか。
 var _from_node: int = 0
 var _to_node: int = 0
@@ -362,7 +367,20 @@ func _update_flash(delta: float) -> void:
 ##
 ## 見下ろしの引きでは顔も装備の細部も読めないので、**役職はシルエットで分ける**。
 ## 盾は横に広く、剣は斜めに、弓は体から上下へはみ出させてある。
+##
+## data.model_scene が設定されている役職（盾兵）だけは、Blender 製のモデルを使う。
+## 他の役職は今までどおり procedural。役職ごとに個別のモデルを用意する手間と、
+## 見下ろし視点でどのみち細部が読めないという前提を踏まえて、当面は盾兵だけに絞ってある。
 func _build_visual() -> void:
+	if data.model_scene != null:
+		_build_model_visual()
+	else:
+		_build_procedural_visual()
+	_visual.scale = Vector3.ONE * data.body_scale
+	_refresh_color()
+
+
+func _build_procedural_visual() -> void:
 	_material = LowPoly.vertex_color_material()
 
 	var body := MeshInstance3D.new()
@@ -377,8 +395,31 @@ func _build_visual() -> void:
 	_visual.add_child(head)
 
 	_visual.add_child(_build_gear())
-	_visual.scale = Vector3.ONE * data.body_scale
-	_refresh_color()
+
+
+## モデルを差し込み、フラッシュ用に全マテリアルを複製して控えておく。
+## 複製しないと、同じ役職の戦士どうしで被弾フラッシュの色が共有されてしまう
+## （インポートしたマテリアルはリソースとして全インスタンスで共有されているため）。
+func _build_model_visual() -> void:
+	var model := data.model_scene.instantiate()
+	_visual.add_child(model)
+	for node in _all_mesh_instances(model):
+		for surface in node.mesh.get_surface_count():
+			var base_material := node.get_active_material(surface) as StandardMaterial3D
+			if base_material == null:
+				continue
+			var material := base_material.duplicate() as StandardMaterial3D
+			node.set_surface_override_material(surface, material)
+			_model_materials.append({"material": material, "base": material.albedo_color})
+
+
+func _all_mesh_instances(node: Node) -> Array[MeshInstance3D]:
+	var found: Array[MeshInstance3D] = []
+	if node is MeshInstance3D:
+		found.append(node)
+	for child in node.get_children():
+		found.append_array(_all_mesh_instances(child))
+	return found
 
 
 ## 装備。look_at で -Z が正面になるので、前は -Z 側。
@@ -412,7 +453,15 @@ func _build_gear() -> MeshInstance3D:
 
 
 func _refresh_color() -> void:
-	if _material == null or data == null:
+	if data == null:
+		return
+	if not _model_materials.is_empty():
+		var mix := _flash_remaining / FLASH_TIME * FLASH_STRENGTH if _flash_remaining > 0.0 else 0.0
+		for entry in _model_materials:
+			var material := entry["material"] as StandardMaterial3D
+			material.albedo_color = (entry["base"] as Color).lerp(FLASH_COLOR, mix)
+		return
+	if _material == null:
 		return
 	var color := data.body_color
 	if _flash_remaining > 0.0:

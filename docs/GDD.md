@@ -169,7 +169,8 @@ Main (Node3D)
     遊び方説明・戦士の攻撃演出）~~ ✅
 22. ~~itch.io 実プレイのフィードバック対応 その 2（ステージ表記・一時停止・
     無限モード開始時のゴールド詰み）~~ ✅
-23. → 次: リッチ VFX・BGM ／ 減速タワーの段（§16.4-7 の残り）
+23. ~~盾兵に Blender 製モデルを 1 体だけ導入（`warrior_knight.blend`）~~ ✅
+24. → 次: リッチ VFX・BGM ／ 減速タワーの段（§16.4-7 の残り）
 
 v2.0 のゲーム像（周回・戦士ユニット・強化）と、以降の順番の理由は §16 にまとめてある。
 
@@ -249,6 +250,44 @@ v2.0 のゲーム像（周回・戦士ユニット・強化）と、以降の順
 機械的な検証の到達周回数そのものは変わらない設計。実際、何周目まで届くかは
 乱数で 1 周ぶんは普通にぶれる（§13 既出の注意どおり）ので、この数値は
 「詰みなく最後まで走り切れる」ことの確認として見ている。
+
+### 23 で入れたもの（盾兵だけ Blender モデルに差し替え）
+
+戦士は procedural（`LowPoly.blob` の塊＋装備 1 個）で統一する方針だった
+（§16.4-5 前半のコメント、および過去に「装甲ロボ風にフル造形して作り直しになった」
+実例——`assets/models/source/warrior_crystal_warden*.blend` として残っている）。
+今回はユーザーが `warrior_knight.blend` を新しく作って持ち込んだので、
+**盾兵 1 役職だけ**に絞って取り込んだ（ユーザーとの相談で決定。衛兵・弓兵は procedural のまま）。
+
+- `tools/export_warrior_models.py` … タワーと違って部位ごとに旋回させる必要が無いので、
+  Base/Turret に分けず 1 つの .glb にまとめて書き出すだけでよい。
+  `Kn_` 接頭辞のメッシュ（Ground は除く）をまとめて `assets/models/warriors/warrior_shield.glb` へ。
+- `WarriorData.model_scene`（`scripts/data/warrior_data.gd`）… null なら今までどおり procedural。
+  盾兵の `.tres` だけこれを設定した。他の役職は触っていない。
+- `Warrior._build_model_visual()`（`scripts/warrior.gd`）… モデルを `_visual` に差し込み、
+  **全マテリアルを複製して控えておく**。被弾フラッシュ（`_refresh_color`）は procedural 版が
+  「共有マテリアル 1 つの色を差し替える」だけだったのに対し、モデルは部位ごとに複数の
+  マテリアルを持つので、同じ見せ方をするには全部を回す必要がある。複製しないと
+  インポートしたマテリアルが全インスタンスで共有されてしまい、戦士 1 人の被弾で
+  同じ役職の全員が一瞬光る事故になる。
+- `body_scale = 1.13`（`resources/warriors/warrior_shield.tres`）… モデルの実寸（地面から
+  頭頂まで 0.926 m）を、procedural 版の盾兵（body_scale 1.25 のときの見かけの高さ
+  ≒ 1.05 m）に合わせるための倍率。他の役職との見た目の大きさを揃えるためだけの数値で、
+  ゲーム上の当たり判定・射程には影響しない。
+
+**ハマった点:** 新規の .glb を追加すると `ERROR: Blender path is invalid or not set` で
+インポートが失敗し続けた（.import が作られない）。**ヘッドレスでは Blender 連携の
+未設定ダイアログを出せないだけ**で、原因は .glb の中身ではなかった
+（同じ内容のコピーでも、既存のタワー用 .glb のコピーでも同じエラーが出た）。
+`%APPDATA%\Godot\editor_settings-4.6.tres` に
+`filesystem/import/blender/blender_path`（Blender 5.0 の実行ファイル）を足したら直った。
+このプロジェクト固有の設定ではなく**ユーザーの Godot エディタ全体の設定**なので、
+別プロジェクトで新規 .glb を足すときも効く。
+
+検証: `headless_check` に新規エラー無し。`balance_sim --stage 1 --towers 0 --warriors 6`
+（盾兵を含めて戦わせ、被弾フラッシュのコードを確実に通す）でも SCRIPT ERROR 無し。
+見た目は `vis_preview -- warrior` で盾兵モデルが procedural な衛兵・弓兵と並んで
+違和感の無い大きさで立つことを確認した。
 
 ### バランスの基準（`tools/balance_sim.gd` で検証）
 

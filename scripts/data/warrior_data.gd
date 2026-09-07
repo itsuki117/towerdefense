@@ -55,6 +55,10 @@ enum Gear { SWORD, SHIELD, BOW }
 ## 手前で止めれば、タワーの射程の中に敵を縛り付ける仕事になる。
 @export_range(2.0, 40.0, 0.5) var advance_limit: float = 10.0
 @export var gear: Gear = Gear.SWORD
+## Blender 製のモデル。null なら procedural（LowPoly.blob + 装備 1 個）のまま。
+## 見下ろし視点では細部が読めないので、当面は雇用数が多く見た目の存在感が要る
+## 役職（盾兵）だけに使う想定。
+@export var model_scene: PackedScene
 ## 体の大きさの倍率。役職の役割を体格でも見せる。
 @export_range(0.6, 1.6, 0.05) var body_scale: float = 1.0
 @export var body_color: Color = Color(0.82, 0.78, 0.68)
