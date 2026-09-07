@@ -265,7 +265,7 @@ func _show_grid(main: Node, manager: BuildManager) -> void:
 	# 撮影中は OS 側のカーソルが戻ってきて hover が外れることがあるので、
 	# 当たり判定の更新を止めてカーソルを固定する。
 	manager.set_physics_process(false)
-	level.get_node(^"BuildGridView").set_cursor(free[0], true)
+	level.get_node(^"BuildGridView").set_cursor(free[0], true, manager.get_selected().attack_range)
 
 
 

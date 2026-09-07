@@ -155,7 +155,11 @@ func _refresh_hover() -> void:
 	if not _has_hover:
 		_view.hide_cursor()
 	else:
-		_view.set_cursor(_hovered, _grid.is_free(_hovered) and GameState.can_afford(_selected.cost))
+		_view.set_cursor(
+			_hovered,
+			_grid.is_free(_hovered) and GameState.can_afford(_selected.cost),
+			_selected.attack_range,
+		)
 
 
 ## カメラのレイと高台の上面の交点。盤面の外なら null。

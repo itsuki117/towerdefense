@@ -25,6 +25,7 @@ const BUTTON_SIZE := Vector2(180, 44)
 
 @onready var _title: Label = $Panel/TitleLabel
 @onready var _message: Label = $Panel/MessageLabel
+@onready var _warning: Label = $Panel/WarningLabel
 @onready var _upgrades: VBoxContainer = $Panel/Upgrades
 @onready var _next_button: Button = $Panel/NextButton
 
@@ -135,6 +136,31 @@ func _last_tier(base: TowerData) -> int:
 
 func _refresh_message() -> void:
 	_message.text = "報酬 +%d G   所持 %d G" % [_reward, GameState.gold]
+	_refresh_warning()
+
+
+## タワーは次のステージで全部消える（§16.4-2 の仕様）。それを知らずに強化へ
+## 全額を使うと、次のステージをタワー 0 本で迎えて詰む——という報告があったため、
+## 「今のゴールドで一番安いタワーすら建たない」ときだけ警告を出す。
+func _refresh_warning() -> void:
+	var cheapest := _cheapest_tower_cost()
+	if cheapest < 0 or GameState.gold >= cheapest:
+		_warning.hide()
+		return
+	_warning.text = "⚠ タワーは次のステージで一新されます。このままだと 1 本も建てられません（最安 %d G）" % cheapest
+	_warning.show()
+
+
+func _cheapest_tower_cost() -> int:
+	var cheapest := -1
+	for option in tower_options:
+		var base := option as TowerData
+		if base == null:
+			continue
+		var cost := GameState.current_tower(base).cost
+		if cheapest < 0 or cost < cheapest:
+			cheapest = cost
+	return cheapest
 
 
 func _on_stage_cleared(stage_number: int, reward: int) -> void:

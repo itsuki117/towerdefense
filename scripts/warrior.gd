@@ -33,6 +33,14 @@ const HEAD_SIZE := Vector3(0.2, 0.18, 0.2)
 const FLASH_COLOR := Color(1.0, 0.96, 0.85)
 const FLASH_TIME := 0.13
 const FLASH_STRENGTH := 0.8
+## 近接の一撃で体ごと前へ踏み込ませる量と時間。
+## 「戦士が攻撃しているか分かりにくい」という指摘への対応
+## ——ダメージは _fight() で即座に決着するので、ここは見た目だけの後付け。
+const LUNGE_DISTANCE := 0.16
+const LUNGE_TIME := 0.18
+## 弓兵の矢が飛ぶ時間。当たり判定は持たず、見た目が追いつくだけの短い便宜。
+const ARROW_TRAVEL_TIME := 0.12
+const ARROW_SIZE := Vector3(0.05, 0.05, 0.45)
 
 @export var data: WarriorData
 
@@ -62,6 +70,9 @@ var _flash_remaining: float = 0.0
 ## 今コストを上乗せしている辺と、その量。倒れたら戻す。
 var _threatened_edge: int = -1
 var _threat_amount: float = 0.0
+## 踏み込みアニメの進行中のもの。攻撃レートが速い役職で重ねて張ると
+## 前のぶんが飛んで見た目が跳ねるので、張り直す前に必ず止める。
+var _lunge_tween: Tween = null
 
 
 ## グラフと種別を渡す。add_child より前に呼ぶこと。
@@ -165,7 +176,9 @@ func _fight(delta: float) -> void:
 	if _attack_cooldown > 0.0:
 		return
 	_attack_cooldown = 1.0 / maxf(data.attack_rate, 0.01)
-	_targets[0].take_damage(attack_damage(_targets[0]))
+	var target := _targets[0]
+	target.take_damage(attack_damage(target))
+	_play_attack_vfx(target)
 
 
 ## 相手に与えるダメージ。**固定ぶん ＋ 相手の最大 HP の割合ぶん**に、武器強化を掛ける。
@@ -179,6 +192,51 @@ func attack_damage(target: Enemy) -> int:
 	if data.damage_percent > 0.0 and target != null:
 		amount += float(target.scaled_max_hp()) * data.damage_percent
 	return maxi(roundi(amount * GameState.weapon_multiplier()), 1)
+
+
+## 攻撃した瞬間の見せ方。ダメージ自体は take_damage() で即座に決着しているので、
+## ここは「殴った／撃った」を目で追えるようにするだけの後付けの演出。
+## 弓兵は距離があるので矢を飛ばし、近接は体ごと踏み込ませる。
+func _play_attack_vfx(target: Enemy) -> void:
+	var aim := target.global_position + Vector3.UP * (BODY_SIZE.y * 0.6)
+	if data.gear == WarriorData.Gear.BOW:
+		_spawn_arrow(global_position + Vector3.UP * (BODY_SIZE.y * 0.9), aim)
+	else:
+		_lunge()
+	Burst.spawn(self, aim, Burst.Kind.HIT, data.gear_color)
+
+
+## 見た目だけの矢。当たり判定は持たず、_fight() で確定済みの結果に追いつくだけ。
+func _spawn_arrow(from: Vector3, to: Vector3) -> void:
+	var container := get_tree().get_first_node_in_group(&"effect_container")
+	if container == null:
+		return
+	var arrow := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = ARROW_SIZE
+	arrow.mesh = box
+	var material := StandardMaterial3D.new()
+	material.albedo_color = data.gear_color
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	arrow.set_surface_override_material(0, material)
+	container.add_child(arrow)
+	arrow.global_position = from
+	arrow.look_at(to, Vector3.UP)
+	var tween := arrow.create_tween()
+	tween.tween_property(arrow, ^"global_position", to, ARROW_TRAVEL_TIME)
+	tween.finished.connect(arrow.queue_free)
+
+
+## 近接の一撃で体ごと前へ小さく踏み込む。look_at で -Z が正面になっているので、
+## _visual のローカル Z を前後させるだけで向きに関係なく前に出せる。
+func _lunge() -> void:
+	if _lunge_tween != null and _lunge_tween.is_valid():
+		_lunge_tween.kill()
+	_visual.position.z = 0.0
+	_lunge_tween = create_tween()
+	_lunge_tween.tween_property(_visual, ^"position:z", -LUNGE_DISTANCE, LUNGE_TIME * 0.4) \
+		.set_trans(Tween.TRANS_SINE)
+	_lunge_tween.tween_property(_visual, ^"position:z", 0.0, LUNGE_TIME * 0.6)
 
 
 func take_damage(amount: int) -> void:

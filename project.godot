@@ -31,6 +31,7 @@ window/stretch/mode="canvas_items"
 ; 内蔵フォントに日本語グリフが無く、Web にはフォールバック先のシステムフォントも
 ; 無いため、同梱フォントを既定にしないと UI が豆腐になる。
 theme/custom_font="res://assets/fonts/NotoSansJP-Regular.otf"
+theme/custom="res://resources/ui/theme.tres"
 
 [layer_names]
 

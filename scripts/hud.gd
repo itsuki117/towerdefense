@@ -17,6 +17,7 @@ extends Control
 @export var build_manager_path: NodePath
 @export var wave_manager_path: NodePath
 @export var warrior_manager_path: NodePath
+@export var help_screen_path: NodePath
 
 @onready var _gold_label: Label = $Stats/GoldLabel
 @onready var _lives_label: Label = $Stats/LivesLabel
@@ -24,6 +25,8 @@ extends Control
 @onready var _tower_bar: HBoxContainer = $BuildBar/TowerRow
 @onready var _warrior_bar: HBoxContainer = $BuildBar/WarriorRow
 @onready var _next_wave_button: Button = $NextWaveButton
+@onready var _fullscreen_button: Button = $FullscreenButton
+@onready var _help_button: Button = $HelpButton
 
 var _build_manager: BuildManager = null
 var _wave_manager: WaveManager = null
@@ -47,6 +50,11 @@ func _ready() -> void:
 
 	_create_tower_buttons()
 	_create_warrior_buttons()
+
+	_fullscreen_button.pressed.connect(_on_fullscreen_pressed)
+	var help_screen := get_node_or_null(help_screen_path)
+	if help_screen != null:
+		_help_button.pressed.connect(help_screen.open)
 
 	GameState.gold_changed.connect(_on_gold_changed)
 	GameState.lives_changed.connect(_on_lives_changed)
@@ -163,6 +171,18 @@ func _on_countdown_changed(seconds_left: float) -> void:
 		_next_wave_button.text = "次の波へ  %d" % ceili(seconds_left)
 	else:
 		_next_wave_button.text = "ウェーブ進行中"
+
+
+## Web 書き出しでも DisplayServer.window_set_mode がブラウザの Fullscreen API を
+## 叩いてくれる（ユーザー操作＝ボタン押下から直接呼ぶ必要がある）ので、
+## デスクトップと同じコードで済む。
+func _on_fullscreen_pressed() -> void:
+	var mode := DisplayServer.window_get_mode()
+	var is_fullscreen := mode == DisplayServer.WINDOW_MODE_FULLSCREEN \
+		or mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN
+	DisplayServer.window_set_mode(
+		DisplayServer.WINDOW_MODE_WINDOWED if is_fullscreen else DisplayServer.WINDOW_MODE_FULLSCREEN
+	)
 
 
 func _on_game_finished() -> void:

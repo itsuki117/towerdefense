@@ -20,6 +20,7 @@
 [ext_resource type="Script" uid="uid://v5vi8hj3uv3o" path="res://scripts/build_manager.gd" id="15_build_manager"]
 [ext_resource type="Script" path="res://scripts/result_screen.gd" id="17_result_screen"]
 [ext_resource type="Script" path="res://scripts/dev_panel.gd" id="31_dev_panel"]
+[ext_resource type="Script" path="res://scripts/help_screen.gd" id="32_help_screen"]
 [ext_resource type="Script" path="res://scripts/camera_rig.gd" id="18_camera_rig"]
 [ext_resource type="Resource" path="res://resources/towers/tower_frost.tres" id="19_tower_frost"]
 
@@ -201,6 +202,7 @@ build_manager_path = NodePath("../../BuildManager")
 warrior_options = [ExtResource("29_warrior_shield"), ExtResource("28_warrior_guard"), ExtResource("30_warrior_archer")]
 wave_manager_path = NodePath("../../WaveManager")
 warrior_manager_path = NodePath("../../WarriorManager")
+help_screen_path = NodePath("../HelpScreen")
 
 [node name="Stats" type="VBoxContainer" parent="UI/HUD" unique_id=506892068]
 layout_mode = 1
@@ -234,6 +236,32 @@ theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 22
 text = "WAVE  0"
+
+[node name="FullscreenButton" type="Button" parent="UI/HUD"]
+custom_minimum_size = Vector2(56, 40)
+layout_mode = 1
+anchors_preset = 0
+offset_left = 20.0
+offset_top = 128.0
+offset_right = 76.0
+offset_bottom = 168.0
+focus_mode = 0
+theme_override_font_sizes/font_size = 22
+text = "⛶"
+tooltip_text = "全画面表示"
+
+[node name="HelpButton" type="Button" parent="UI/HUD"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 1
+anchors_preset = 0
+offset_left = 84.0
+offset_top = 128.0
+offset_right = 124.0
+offset_bottom = 168.0
+focus_mode = 0
+theme_override_font_sizes/font_size = 20
+text = "?"
+tooltip_text = "遊び方"
 
 [node name="NextWaveButton" type="Button" parent="UI/HUD"]
 custom_minimum_size = Vector2(200, 52)
@@ -330,6 +358,15 @@ theme_override_colors/font_color = Color(0.88, 0.9, 0.94, 1)
 theme_override_font_sizes/font_size = 22
 text = "報酬"
 horizontal_alignment = 1
+
+[node name="WarningLabel" type="Label" parent="UI/IntervalScreen/Panel"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.62, 0.4, 1)
+theme_override_font_sizes/font_size = 16
+text = "⚠"
+horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="Upgrades" type="VBoxContainer" parent="UI/IntervalScreen/Panel"]
 layout_mode = 2
@@ -482,3 +519,71 @@ layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 22
 text = "もう一度あそぶ"
+
+[node name="HelpScreen" type="Control" parent="UI"]
+process_mode = 3
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("32_help_screen")
+
+[node name="Dim" type="ColorRect" parent="UI/HelpScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.05, 0.07, 0.1, 0.7)
+
+[node name="Panel" type="VBoxContainer" parent="UI/HelpScreen"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -320.0
+offset_top = -230.0
+offset_right = 320.0
+offset_bottom = 230.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="UI/HelpScreen/Panel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.93, 1, 1)
+theme_override_font_sizes/font_size = 34
+text = "遊び方"
+horizontal_alignment = 1
+
+[node name="BodyLabel" type="Label" parent="UI/HelpScreen/Panel"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.92, 0.95, 1)
+theme_override_font_sizes/font_size = 18
+text = "拠点（クリスタル）を守り、全ステージを守り切れば勝利。
+
+・下のボタンでタワーか戦士を選ぶ → 盤面をクリックで設置
+・タワーを選ぶと、置く前にマス上へ射程の輪が出る
+・右クリック / Esc で選択解除
+・戦士は前へ出て敵を足止めする。倒すのはタワーの仕事
+・「次の波へ」を押すまで、待ち時間の間に建て直せる
+
+⚠ 重要: タワーはステージが変わるとすべて無くなる。
+インターバル画面の強化は種類そのものが強くなる投資だが、
+次のステージで置き直すぶんのゴールドも残しておくこと。"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="CloseButton" type="Button" parent="UI/HelpScreen/Panel"]
+custom_minimum_size = Vector2(200, 52)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 20
+text = "閉じる"

@@ -15,6 +15,9 @@ const PAD_SCALE := 0.86
 const LIFT := 0.05
 ## カーソルをマスの板よりさらに浮かせる量。
 const CURSOR_LIFT := 0.03
+## 射程リングの太さ（外径との差）と、地面からの浮かせ量。
+const RANGE_RING_WIDTH := 0.12
+const RANGE_RING_LIFT := 0.02
 
 ## 置けるマスの色（薄く出す）。
 const COLOR_FREE := Color(0.85, 0.92, 1.0, 0.18)
@@ -23,10 +26,15 @@ const COLOR_FREE := Color(0.85, 0.92, 1.0, 0.18)
 const COLOR_VALID := Color(0.72, 1.0, 0.78, 0.85)
 ## ゴールドが足りない、または置けないマス。
 const COLOR_INVALID := Color(1.0, 0.42, 0.38, 0.8)
+## 射程リングの色。マスの色と混ざらないよう、彩度を落とした白にしてある。
+const COLOR_RANGE := Color(1.0, 1.0, 1.0, 0.55)
 
 var _pads: MultiMeshInstance3D = null
 var _cursor: MeshInstance3D = null
 var _cursor_material: StandardMaterial3D = null
+var _range_ring: MeshInstance3D = null
+## 直前に作ったリングの半径。同じ半径なら作り直さない。
+var _range_ring_radius: float = -1.0
 var _grid: BuildGrid = null
 
 
@@ -44,6 +52,12 @@ func _ready() -> void:
 	_cursor.visible = false
 	add_child(_cursor)
 
+	_range_ring = MeshInstance3D.new()
+	_range_ring.name = "RangeRing"
+	_range_ring.material_override = _make_material(COLOR_RANGE)
+	_range_ring.visible = false
+	add_child(_range_ring)
+
 	var level := Level.find(self)
 	if level != null:
 		_grid = level.grid
@@ -51,16 +65,27 @@ func _ready() -> void:
 
 
 ## カーソルを 1 マスに合わせる。buildable が false なら赤く出す。
-func set_cursor(cell: Vector2i, buildable: bool) -> void:
+## attack_range を渡すと、その広さの射程リングも同じマスへ重ねて出す
+## （タワーを建てる前に「どこまで届くか」を見せるため）。
+func set_cursor(cell: Vector2i, buildable: bool, attack_range: float = 0.0) -> void:
 	if _grid == null:
 		return
+	var point := _grid.placement_of(cell)
 	_cursor.visible = true
-	_cursor.position = _grid.placement_of(cell) + Vector3.UP * (LIFT + CURSOR_LIFT)
+	_cursor.position = point + Vector3.UP * (LIFT + CURSOR_LIFT)
 	_cursor_material.albedo_color = COLOR_VALID if buildable else COLOR_INVALID
+
+	if attack_range <= 0.0:
+		_range_ring.visible = false
+		return
+	_range_ring.visible = true
+	_range_ring.position = point + Vector3.UP * RANGE_RING_LIFT
+	_range_ring.mesh = _range_ring_mesh(attack_range)
 
 
 func hide_cursor() -> void:
 	_cursor.visible = false
+	_range_ring.visible = false
 
 
 ## 建った後など、空きマスが変わったら呼ぶ。
@@ -80,6 +105,18 @@ func _rebuild_pads() -> void:
 		var point := _grid.placement_of(free[i]) + Vector3.UP * LIFT
 		multimesh.set_instance_transform(i, Transform3D(Basis.IDENTITY, point))
 	_pads.multimesh = multimesh
+
+
+## 射程ぶんの輪。TorusMesh は既定で XZ 平面に寝ているので、道のマスと同じ向きで置ける。
+## 半径が変わるたびに作り直すが、選択中は同じタワーの射程を使い回すので毎フレームは呼ばれない。
+func _range_ring_mesh(radius: float) -> Mesh:
+	if is_equal_approx(_range_ring_radius, radius) and _range_ring.mesh != null:
+		return _range_ring.mesh
+	_range_ring_radius = radius
+	var torus := TorusMesh.new()
+	torus.inner_radius = maxf(radius - RANGE_RING_WIDTH, 0.01)
+	torus.outer_radius = radius
+	return torus
 
 
 func _pad_mesh(scale_factor: float) -> Mesh:
