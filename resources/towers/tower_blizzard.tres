@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="1_tower_data"]
+[ext_resource type="PackedScene" path="res://scenes/tower_blizzard.tscn" id="2_scene"]
+[ext_resource type="Resource" path="res://resources/towers/tower_permafrost.tres" id="3_next"]
+
+[resource]
+script = ExtResource("1_tower_data")
+display_name = "ブリザードタワー"
+tier = 3
+tower_scene = ExtResource("2_scene")
+cost = 265
+damage = 9
+attack_range = 7.0
+fire_rate = 1.6
+projectile_speed = 24.0
+effect = 1
+slow_factor = 0.26
+slow_duration = 3.1
+body_color = Color(0.55, 0.85, 0.98, 1)
+shoot_sfx = &"shoot_frost"
+upgrade_cost = 1100
+next_tier = ExtResource("3_next")

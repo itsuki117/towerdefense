@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="1_tower_data"]
+[ext_resource type="PackedScene" path="res://scenes/tower_absolute_zero.tscn" id="2_scene"]
+
+[resource]
+script = ExtResource("1_tower_data")
+display_name = "アブソリュートゼロタワー"
+tier = 5
+tower_scene = ExtResource("2_scene")
+cost = 385
+damage = 18
+attack_range = 8.0
+fire_rate = 1.7
+projectile_speed = 26.0
+effect = 1
+slow_factor = 0.18
+slow_duration = 3.8
+body_color = Color(0.9, 0.98, 1, 1)
+shoot_sfx = &"shoot_frost"
+upgrade_cost = 0

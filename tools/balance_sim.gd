@@ -12,6 +12,7 @@ extends SceneTree
 ##               通常砲だけの結果と比べると、減速砲を混ぜる価値が測れる。
 ## --tier        アロータワーの段（1〜5）を最初から上げておく。**費用は払わない**ので、
 ##               「その段の火力だけ」を測れる。--campaign と混ぜると意味が薄れる。
+## --frost-tier  フロストタワーの段（1〜5）を最初から上げておく。--tier と同じく費用は払わない。
 ## --warriors    同時に保つ戦士の人数（上限 8）。倒れたら雇い直す。
 ##               盾兵→衛兵→弓兵の順に回す。0 なら雇わない。
 ## --stage       いきなりそのステージから始める（1 始まり）。1 面ずつ詰めるとき用。
@@ -55,6 +56,7 @@ const WARRIOR_FILES := [
 var _max_towers := 99
 var _frost_every := 3
 var _tier := 1
+var _frost_tier := 1
 var _max_warriors := 0
 var _campaign := false
 var _upgrade_policy := "balanced"
@@ -86,6 +88,7 @@ func _initialize() -> void:
 	_max_towers = _int_arg(args, "--towers", _max_towers)
 	_frost_every = _int_arg(args, "--frost-every", _frost_every)
 	_tier = maxi(_int_arg(args, "--tier", _tier), 1)
+	_frost_tier = maxi(_int_arg(args, "--frost-tier", _frost_tier), 1)
 	_max_warriors = clampi(_int_arg(args, "--warriors", 0), 0, 8)
 	_campaign = args.has("--campaign")
 	var endless := args.has("--endless")
@@ -114,8 +117,8 @@ func _initialize() -> void:
 	_build_stage()
 	_apply_tier()
 
-	print("=== SIM START (towers<=%d, tier=%d, warriors=%d, %s) ===" % [
-		_max_towers, _tier, _max_warriors,
+	print("=== SIM START (towers<=%d, tier=%d, frost_tier=%d, warriors=%d, %s) ===" % [
+		_max_towers, _tier, _frost_tier, _max_warriors,
 		"campaign upgrade=%s" % _upgrade_policy if _campaign else "stage %d" % (_game_state.stage + 1),
 	])
 
@@ -127,21 +130,27 @@ func _int_arg(args: PackedStringArray, name: String, fallback: int) -> int:
 	return fallback
 
 
-## アロータワーの段を _tier まで進める。費用は払わない。
+## アロー・フロスト両タワーの段を _tier / _frost_tier まで進める。費用は払わない。
 ##
 ## 強化の費用まで含めると「その段に届くゴールドが貯まるか」の測定になってしまう。
-## ここで見たいのは段そのものの火力なので、費用は分けて考える。
+## ここで見たいのは段そのものの火力（フロストなら足止めの強さも）なので、
+## 費用は分けて考える。
 func _apply_tier() -> void:
-	var base := load(ARROW)
+	_apply_tier_for(ARROW, _tier, "アロータワー")
+	_apply_tier_for(FROST, _frost_tier, "フロストタワー")
+
+
+func _apply_tier_for(path: String, tier: int, label: String) -> void:
+	var base := load(path)
 	var current = base
-	for _step in _tier - 1:
+	for _step in tier - 1:
 		if current.next_tier == null:
 			break
 		current = current.next_tier
 	_game_state.tower_tiers[base] = current
 	if current != base:
-		print("アロータワー -> %s（段 %d / 設置 %d G / ダメージ %d）" % [
-			current.display_name, current.tier, current.cost, current.damage,
+		print("%s -> %s（段 %d / 設置 %d G / ダメージ %d）" % [
+			label, current.display_name, current.tier, current.cost, current.damage,
 		])
 
 
@@ -219,6 +228,15 @@ func _advance_to_next_stage() -> void:
 ## balanced は**タワーの段を先に、余ったら武器**。安いほうから買う版も試したが、
 ## 武器 Lv1 を先に買ってタワーが 2 本減り、次のステージで押し切られた。
 ## 武器は戦士を抱えているぶんにしか効かないので、盤面より後になるのが妥当。
+##
+## **アローの鎖だけを優先する。** フロストにも段が付いたが、フロストは板の 1/3 ほど
+## しか占めない（--frost-every）うえ段ごとの火力の伸びも控えめ（役目は足止め）。
+## 「安いほうから買う」を両方の鎖に広げてみたところ、フロストの強化費用が
+## アローより安いために毎回フロストが先に選ばれ続け、板の大半を占めるアローが
+## 育たないまま周回全体が悪化した（実測: ステージ 2 で敗北するまで崩れた）。
+## フロストの強化は**プレイヤーが手動で選べる**（IntervalScreen には出る）が、
+## この自動検証の既定方針では対象にしない。フロストだけを測りたいときは
+## --frost-tier で段を直接指定すること。
 func _buy_upgrades() -> void:
 	if _upgrade_policy == "none":
 		return
@@ -266,7 +284,7 @@ func _try_build_one() -> void:
 	if _spots.is_empty():
 		_collect_spots()
 	var use_frost := _frost_every > 0 and _built % _frost_every == _frost_every - 1
-	var data = load(FROST) if use_frost else _game_state.current_tower(load(ARROW))
+	var data = _game_state.current_tower(load(FROST)) if use_frost else _game_state.current_tower(load(ARROW))
 	if _game_state.gold < data.cost:
 		return
 	_manager.call(&"select_tower", data)

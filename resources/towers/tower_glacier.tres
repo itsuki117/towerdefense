@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="TowerData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/tower_data.gd" id="1_tower_data"]
+[ext_resource type="PackedScene" path="res://scenes/tower_glacier.tscn" id="2_scene"]
+[ext_resource type="Resource" path="res://resources/towers/tower_blizzard.tres" id="3_next"]
+
+[resource]
+script = ExtResource("1_tower_data")
+display_name = "グレイシャータワー"
+tier = 2
+tower_scene = ExtResource("2_scene")
+cost = 215
+damage = 6
+attack_range = 6.5
+fire_rate = 1.5
+projectile_speed = 23.0
+effect = 1
+slow_factor = 0.3
+slow_duration = 2.8
+body_color = Color(0.4, 0.68, 0.93, 1)
+shoot_sfx = &"shoot_frost"
+upgrade_cost = 850
+next_tier = ExtResource("3_next")

@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dq3d46uycurk7"
-path="res://.godot/imported/warrior_shield.glb-6afc74883a7e070ba3e4c1c7f1f44c28.scn"
+uid="uid://dxukawyyf42yg"
+path="res://.godot/imported/tower_frost5_turret.glb-ccd1fdd512e982486667f026cc650021.scn"
 
 [deps]
 
-source_file="res://assets/models/warriors/warrior_shield.glb"
-dest_files=["res://.godot/imported/warrior_shield.glb-6afc74883a7e070ba3e4c1c7f1f44c28.scn"]
+source_file="res://assets/models/tower_frost5_turret.glb"
+dest_files=["res://.godot/imported/tower_frost5_turret.glb-ccd1fdd512e982486667f026cc650021.scn"]
 
 [params]
 
