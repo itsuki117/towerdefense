@@ -172,7 +172,8 @@ Main (Node3D)
 23. ~~盾兵に Blender 製モデルを 1 体だけ導入（`warrior_knight.blend`）~~ ✅
 24. ~~スマホ最適化（画面いっぱいに表示） ／ フロストタワーのティア 5 段
     （§16.4-7 の残りのうち後半）／ 盾兵のモデルを v3 に差し替え~~ ✅
-25. → 次: リッチ VFX・BGM（§16.4-7 の残り）
+25. ~~盾兵のモデルを v4（`crystal_knight_reference_v4`）へ再差し替え~~ ✅
+26. → 次: リッチ VFX・BGM（§16.4-7 の残り）
 
 v2.0 のゲーム像（周回・戦士ユニット・強化）と、以降の順番の理由は §16 にまとめてある。
 
@@ -388,6 +389,28 @@ Web 書き出し側はすでに `html/canvas_resize_policy=2`（adaptive、キ�
 で被弾フラッシュ込みで SCRIPT ERROR 無し（マテリアル数が 6→6 でも複製ロジックは
 部位数に依存しない一般化のままで通った）。見た目は `vis_preview -- warrior` で
 procedural な衛兵・弓兵と並べて確認した。
+
+### 25 で入れたもの（盾兵のモデルを v4 へ再差し替え）
+
+`art/crystal_knight_reference_v4/crystal_knight_v4.glb` へ差し替え。23・24 で
+組んだ `WarriorData.model_scene` の仕組みは変えていないので、
+`assets/models/warriors/warrior_shield.glb` を新しい内容で置き換えるだけで済んだ。
+
+8 メッシュ・10 マテリアル・画像テクスチャ無し・アニメーション無し
+（`validation.json` で roundtrip 確認済み）。高さが 1.1616 m → 1.1818 m に
+わずかに変わったので、`body_scale` を 0.9 → 0.89 に引き直した（procedural な
+戦士の見かけの高さ ≒ 1.05 m に合わせる計算は 23・24 と同じ）。
+
+**このモデルは前方が Blender の +Y**（23・24 の -Y とは逆）——ただし glTF 書き出し後は
+Godot の -Z（正面）になるよう変換済みと `README.md` に明記されていたので、
+そのまま使って向きの問題は出ていない。今後さらに差し替える可能性があるなら、
+`Warrior._build_model_visual()` 側は前方の向きに関与しないので、Blender 側の
+エクスポート設定が正しければどちらの流儀でも取り込める。
+
+検証: `headless_check` エラー無し、`balance_sim --stage 1 --towers 0 --warriors 6`
+で被弾フラッシュ込みで SCRIPT ERROR 無し（マテリアル数 6→10 でも複製ロジックは
+そのまま通った）。見た目は `vis_preview -- warrior` で procedural な衛兵・弓兵と
+並べて確認した。
 
 ### バランスの基準（`tools/balance_sim.gd` で検証）
 
