@@ -1,6 +1,7 @@
-[gd_resource type="Resource" script_class="WarriorData" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="WarriorData" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/data/warrior_data.gd" id="1_warrior_data"]
+[ext_resource type="PackedScene" path="res://assets/models/warriors/warrior_archer.glb" id="2_archer_model"]
 
 [resource]
 script = ExtResource("1_warrior_data")
@@ -17,6 +18,7 @@ threat_length = 2
 advance_limit = 13
 block_capacity = 0
 gear = 2
-body_scale = 0.92
+body_scale = 0.65
 body_color = Color(0.66, 0.52, 0.76, 1)
 gear_color = Color(0.5, 0.36, 0.22, 1)
+model_scene = ExtResource("2_archer_model")

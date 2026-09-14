@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://dotnvx0aqxs6h"
-path="res://.godot/imported/warrior_guard.glb-de85f03c6a009ac860484884ec70c358.scn"
+uid="uid://4wvgan16xyt7"
+path="res://.godot/imported/warrior_archer.glb-3cda6eb890dab40b6f0d23fb020f223c.scn"
 
 [deps]
 
-source_file="res://assets/models/warriors/warrior_guard.glb"
-dest_files=["res://.godot/imported/warrior_guard.glb-de85f03c6a009ac860484884ec70c358.scn"]
+source_file="res://assets/models/warriors/warrior_archer.glb"
+dest_files=["res://.godot/imported/warrior_archer.glb-3cda6eb890dab40b6f0d23fb020f223c.scn"]
 
 [params]
 
