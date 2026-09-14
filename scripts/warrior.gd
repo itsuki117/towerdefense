@@ -41,6 +41,15 @@ const LUNGE_TIME := 0.18
 ## 弓兵の矢が飛ぶ時間。当たり判定は持たず、見た目が追いつくだけの短い便宜。
 const ARROW_TRAVEL_TIME := 0.12
 const ARROW_SIZE := Vector3(0.05, 0.05, 0.45)
+## モデルに「振れる腕」（Arm.R）があるときだけ使う剣振りアニメ。
+## スケルトン・ボーンアニメーションではなく、そのノード 1 個の回転を tween するだけの
+## procedural な振り——このプロジェクトは戦士に骨アニメを持たせない方針
+## （`assets/models/source/` に残っている過去の作り直し例のとおり）なので、
+## 「静止モデルの一部を tween で動かす」という今までの手法（_lunge / _spawn_arrow）を
+## そのまま延長しただけ。角度・時間ともに見た目を見ながら決めた実測値。
+const SWING_NODE_NAME := &"Arm.R"
+const SWING_ANGLE := -70.0
+const SWING_TIME := 0.22
 
 @export var data: WarriorData
 
@@ -55,6 +64,11 @@ var _material: StandardMaterial3D = null
 ## 手続き生成は _material 1 つの色を差し替えるだけで済むが、
 ## モデルは部位ごとに複数のマテリアルを持つので、同じ見せ方をするには全部を回す必要がある。
 var _model_materials: Array[Dictionary] = []
+## data.model_scene に SWING_NODE_NAME という名前の子があるときだけ埋まる
+## （盾兵のモデルには無いので null のまま——その場合は _lunge() を使う）。
+var _swing_node: Node3D = null
+var _swing_rest_rotation := Vector3.ZERO
+var _swing_tween: Tween = null
 ## 今いる辺（_from_node から _to_node へ）と、その辺をどれだけ進んだか。
 var _from_node: int = 0
 var _to_node: int = 0
@@ -206,6 +220,8 @@ func _play_attack_vfx(target: Enemy) -> void:
 	var aim := target.global_position + Vector3.UP * (BODY_SIZE.y * 0.6)
 	if data.gear == WarriorData.Gear.BOW:
 		_spawn_arrow(global_position + Vector3.UP * (BODY_SIZE.y * 0.9), aim)
+	elif _swing_node != null:
+		_swing_arm()
 	else:
 		_lunge()
 	Burst.spawn(self, aim, Burst.Kind.HIT, data.gear_color)
@@ -242,6 +258,22 @@ func _lunge() -> void:
 	_lunge_tween.tween_property(_visual, ^"position:z", -LUNGE_DISTANCE, LUNGE_TIME * 0.4) \
 		.set_trans(Tween.TRANS_SINE)
 	_lunge_tween.tween_property(_visual, ^"position:z", 0.0, LUNGE_TIME * 0.6)
+
+
+## 振り上げた剣を振り下ろしてから、また構え直す（=rest_rotation へ戻る）。
+## Sword メッシュは Arm.R の子として書き出されているので、Arm.R だけ回せば
+## 剣も付いてくる（README のとおり）。骨アニメではなく 1 ノードの回転 tween。
+func _swing_arm() -> void:
+	if _swing_tween != null and _swing_tween.is_valid():
+		_swing_tween.kill()
+	_swing_node.rotation = _swing_rest_rotation
+	_swing_tween = create_tween()
+	_swing_tween.tween_property(
+		_swing_node, ^"rotation:x", _swing_rest_rotation.x + deg_to_rad(SWING_ANGLE), SWING_TIME * 0.4
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_swing_tween.tween_property(
+		_swing_node, ^"rotation:x", _swing_rest_rotation.x, SWING_TIME * 0.6
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 
 
 func take_damage(amount: int) -> void:
@@ -411,6 +443,12 @@ func _build_model_visual() -> void:
 			var material := base_material.duplicate() as StandardMaterial3D
 			node.set_surface_override_material(surface, material)
 			_model_materials.append({"material": material, "base": material.albedo_color})
+
+	# 振れる腕を持つモデル（剣を振り上げた衛兵）だけ、そのノードの回転を控えておく。
+	# 盾兵のモデルには無いので null のままになり、_play_attack_vfx() は _lunge() を使う。
+	_swing_node = model.find_child(SWING_NODE_NAME, true, false) as Node3D
+	if _swing_node != null:
+		_swing_rest_rotation = _swing_node.rotation
 
 
 func _all_mesh_instances(node: Node) -> Array[MeshInstance3D]:
