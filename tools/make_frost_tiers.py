@@ -41,6 +41,12 @@ MODEL_DIR = os.path.join(ROOT, "assets", "models")
 # slow_duration: 効果が続く秒数。
 # upgrade     : この段から次の段へ上げる費用。最終段は 0（これ以上上がらない）。
 
+# shot_color / shot_scale : 氷の玉の色と大きさ。**段ごとに大きく・淡くする**ので、
+#           飛んでいる弾を見ただけで何段目のフロストタワーかが分かる。
+
+## 氷の玉。フロスト系は 5 段ともこれで統一する（系統の見分けが弾にも出るように）。
+ORB = 2
+
 TIERS = [
     {
         "file": "tower_frost", "name": "フロストタワー", "model": "tower_slow",
@@ -48,6 +54,7 @@ TIERS = [
         "cost": 170, "damage": 4, "range": 6.0, "rate": 1.5, "speed": 22.0,
         "slow_factor": 0.35, "slow_duration": 2.5,
         "color": (0.45, 0.72, 0.95), "upgrade": 500,
+        "shot_color": (0.55, 0.82, 1.0), "shot_scale": 0.9,
     },
     {
         "file": "tower_glacier", "name": "グレイシャータワー", "model": "tower_frost2",
@@ -55,6 +62,7 @@ TIERS = [
         "cost": 215, "damage": 6, "range": 6.5, "rate": 1.5, "speed": 23.0,
         "slow_factor": 0.30, "slow_duration": 2.8,
         "color": (0.40, 0.68, 0.93), "upgrade": 850,
+        "shot_color": (0.62, 0.88, 1.0), "shot_scale": 1.05,
     },
     {
         "file": "tower_blizzard", "name": "ブリザードタワー", "model": "tower_frost3",
@@ -62,6 +70,7 @@ TIERS = [
         "cost": 265, "damage": 9, "range": 7.0, "rate": 1.6, "speed": 24.0,
         "slow_factor": 0.26, "slow_duration": 3.1,
         "color": (0.55, 0.85, 0.98), "upgrade": 1100,
+        "shot_color": (0.72, 0.93, 1.0), "shot_scale": 1.2,
     },
     {
         "file": "tower_permafrost", "name": "パーマフロストタワー", "model": "tower_frost4",
@@ -69,6 +78,7 @@ TIERS = [
         "cost": 320, "damage": 13, "range": 7.5, "rate": 1.6, "speed": 25.0,
         "slow_factor": 0.22, "slow_duration": 3.4,
         "color": (0.75, 0.93, 1.0), "upgrade": 1450,
+        "shot_color": (0.82, 0.96, 1.0), "shot_scale": 1.35,
     },
     {
         "file": "tower_absolute_zero", "name": "アブソリュートゼロタワー", "model": "tower_frost5",
@@ -76,6 +86,7 @@ TIERS = [
         "cost": 385, "damage": 18, "range": 8.0, "rate": 1.7, "speed": 26.0,
         "slow_factor": 0.18, "slow_duration": 3.8,
         "color": (0.9, 0.98, 1.0), "upgrade": 0,
+        "shot_color": (0.93, 0.99, 1.0), "shot_scale": 1.55,
     },
 ]
 
@@ -106,6 +117,16 @@ def verify():
                 "slow_duration が段 %d で伸びていない (%s -> %s)"
                 % (i + 1, durations[i - 1], durations[i])
             )
+    scales = [tier["shot_scale"] for tier in TIERS]
+    for i in range(1, len(scales)):
+        if scales[i] <= scales[i - 1]:
+            problems.append(
+                "shot_scale が段 %d で大きくなっていない (%s -> %s)"
+                % (i + 1, scales[i - 1], scales[i])
+            )
+    colors = [tier["shot_color"] for tier in TIERS]
+    if len(set(colors)) != len(colors):
+        problems.append("shot_color が段で重複している（弾を見て段が分からない）")
     if TIERS[-1]["upgrade"] != 0:
         problems.append("最終段に upgrade_cost が残っている（鎖が終わらない）")
     for tier in TIERS[:-1]:
@@ -186,6 +207,9 @@ def resource_text(tier, next_tier):
         'slow_factor = %s' % _float(tier["slow_factor"]),
         'slow_duration = %s' % _float(tier["slow_duration"]),
         'body_color = Color(%g, %g, %g, 1)' % tier["color"],
+        'shot = %d' % ORB,
+        'shot_color = Color(%g, %g, %g, 1)' % tier["shot_color"],
+        'shot_scale = %s' % _float(tier["shot_scale"]),
         'shoot_sfx = &"shoot_frost"',
         'upgrade_cost = %d' % tier["upgrade"],
     ]

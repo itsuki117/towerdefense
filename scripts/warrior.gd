@@ -25,6 +25,9 @@ extends Node3D
 ## 倒れた。雇い直しの判断は WarriorManager 側でする。
 signal died
 
+## 矢のメッシュ。形は全員で同じなので 1 つ作って使い回す。
+static var _shared_arrow: Mesh = null
+
 const BODY_SIZE := Vector3(0.3, 0.44, 0.3)
 ## 道の中心から左右へ散らす幅。道の半幅より内側に収める。
 const SIDE_SPREAD := 0.55
@@ -40,16 +43,31 @@ const LUNGE_DISTANCE := 0.16
 const LUNGE_TIME := 0.18
 ## 弓兵の矢が飛ぶ時間。当たり判定は持たず、見た目が追いつくだけの短い便宜。
 const ARROW_TRAVEL_TIME := 0.12
-const ARROW_SIZE := Vector3(0.05, 0.05, 0.45)
-## モデルに「振れる腕」（Arm.R）があるときだけ使う剣振りアニメ。
+## 矢の各部の大きさ。矢柄 ／ 鏃 ／ 矢羽根（十字に 2 枚）。
+## 箱 1 個では「細い棒が飛んでいる」ようにしか見えなかったので 3 つに分けた。
+const ARROW_SHAFT := Vector3(0.028, 0.028, 0.42)
+const ARROW_HEAD := Vector3(0.072, 0.072, 0.1)
+const ARROW_FLETCH := Vector3(0.011, 0.085, 0.11)
+## 矢が描く山の高さ (m)。近距離なので気持ちだけ。
+const ARROW_ARC := 0.16
+## 矢の部位ごとの色。緑の地面の上を飛ぶので、矢羽根は明るい生成りにして拾いやすくする。
+const ARROW_SHAFT_COLOR := Color(0.45, 0.3, 0.18)
+const ARROW_HEAD_COLOR := Color(0.74, 0.8, 0.88)
+const ARROW_FLETCH_COLOR := Color(0.9, 0.91, 0.84)
+## モデルに「振れる腕」があるときだけ使う攻撃アニメ。
 ## スケルトン・ボーンアニメーションではなく、そのノード 1 個の回転を tween するだけの
 ## procedural な振り——このプロジェクトは戦士に骨アニメを持たせない方針
 ## （`assets/models/source/` に残っている過去の作り直し例のとおり）なので、
 ## 「静止モデルの一部を tween で動かす」という今までの手法（_lunge / _spawn_arrow）を
 ## そのまま延長しただけ。角度・時間ともに見た目を見ながら決めた実測値。
-const SWING_NODE_NAME := &"Arm.R"
+##
+## 振るのは**武器を持っている側の腕**。弓兵だけは弓ではなく
+## **引き手（Arm.L）**を弾いて、弦を放した動きにする。
 const SWING_ANGLE := -70.0
 const SWING_TIME := 0.22
+## 弓兵の引き手が戻る動き。剣より浅く・速く。
+const RELEASE_ANGLE := 34.0
+const RELEASE_TIME := 0.14
 
 @export var data: WarriorData
 
@@ -64,11 +82,14 @@ var _material: StandardMaterial3D = null
 ## 手続き生成は _material 1 つの色を差し替えるだけで済むが、
 ## モデルは部位ごとに複数のマテリアルを持つので、同じ見せ方をするには全部を回す必要がある。
 var _model_materials: Array[Dictionary] = []
-## data.model_scene に SWING_NODE_NAME という名前の子があるときだけ埋まる
+## モデルに振れる腕（_swing_node_name）があるときだけ埋まる
 ## （盾兵のモデルには無いので null のまま——その場合は _lunge() を使う）。
 var _swing_node: Node3D = null
 var _swing_rest_rotation := Vector3.ZERO
 var _swing_tween: Tween = null
+## 弓を握っている拳（モデルの Bow ノード）。矢はここから飛ばす。
+## 無ければ体の高さから飛ばす（手続き生成の弓兵はノードを持たない）。
+var _bow_node: Node3D = null
 ## 今いる辺（_from_node から _to_node へ）と、その辺をどれだけ進んだか。
 var _from_node: int = 0
 var _to_node: int = 0
@@ -219,33 +240,76 @@ func attack_damage(target: Enemy) -> int:
 func _play_attack_vfx(target: Enemy) -> void:
 	var aim := target.global_position + Vector3.UP * (BODY_SIZE.y * 0.6)
 	if data.gear == WarriorData.Gear.BOW:
-		_spawn_arrow(global_position + Vector3.UP * (BODY_SIZE.y * 0.9), aim)
+		# 矢は弓を握った拳から飛ばす。あわせて引き手を弾いて弦を放した動きにする。
+		_spawn_arrow(_arrow_origin(), aim)
+		if _swing_node != null:
+			_swing_arm(RELEASE_ANGLE, RELEASE_TIME)
 	elif _swing_node != null:
-		_swing_arm()
+		_swing_arm(SWING_ANGLE, SWING_TIME)
 	else:
 		_lunge()
 	Burst.spawn(self, aim, Burst.Kind.HIT, data.gear_color)
 
 
+## 矢が出る位置。モデルがあれば弓を握った拳、無ければ体の上のほう。
+func _arrow_origin() -> Vector3:
+	if _bow_node != null:
+		return _bow_node.global_position
+	return global_position + Vector3.UP * (BODY_SIZE.y * 0.9)
+
+
 ## 見た目だけの矢。当たり判定は持たず、_fight() で確定済みの結果に追いつくだけ。
+##
+## 矢柄・鏃・矢羽根を 1 つのメッシュにまとめて作る（形は使い回すので、
+## 撃つたびに作り直すのは MeshInstance だけ）。山なりに飛ばすのは気持ちの問題で、
+## 射程 4.5 m だと直線でも当たって見えるが、弧があるほうが「射った」感じが出る。
 func _spawn_arrow(from: Vector3, to: Vector3) -> void:
 	var container := get_tree().get_first_node_in_group(&"effect_container")
 	if container == null:
 		return
 	var arrow := MeshInstance3D.new()
-	var box := BoxMesh.new()
-	box.size = ARROW_SIZE
-	arrow.mesh = box
-	var material := StandardMaterial3D.new()
-	material.albedo_color = data.gear_color
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	arrow.set_surface_override_material(0, material)
+	arrow.mesh = _arrow_mesh()
+	arrow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	container.add_child(arrow)
 	arrow.global_position = from
 	arrow.look_at(to, Vector3.UP)
 	var tween := arrow.create_tween()
-	tween.tween_property(arrow, ^"global_position", to, ARROW_TRAVEL_TIME)
+	tween.tween_method(
+		func(progress: float) -> void:
+			arrow.global_position = from.lerp(to, progress) \
+				+ Vector3.UP * sin(progress * PI) * ARROW_ARC,
+		0.0, 1.0, ARROW_TRAVEL_TIME
+	)
 	tween.finished.connect(arrow.queue_free)
+
+
+## 矢 1 本ぶんのメッシュ。-Z が前（look_at に合わせる）。
+## 部位ごとに色を変えるので、頂点カラーのマテリアル 1 枚で足りる。
+func _arrow_mesh() -> Mesh:
+	if _shared_arrow != null:
+		return _shared_arrow
+	var shaft := BoxMesh.new()
+	shaft.size = ARROW_SHAFT
+	var head := BoxMesh.new()
+	head.size = ARROW_HEAD
+	var fletch := BoxMesh.new()
+	fletch.size = ARROW_FLETCH
+	var fletch_flat := BoxMesh.new()
+	fletch_flat.size = Vector3(ARROW_FLETCH.y, ARROW_FLETCH.x, ARROW_FLETCH.z)
+
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_smooth_group(-1)
+	LowPoly.append_shape(st, shaft, Vector3.ZERO, ARROW_SHAFT_COLOR)
+	LowPoly.append_shape(st, head, Vector3(0.0, 0.0, -ARROW_SHAFT.z * 0.5), ARROW_HEAD_COLOR)
+	# 矢羽根は十字に 2 枚。回さずに済むよう、縦の板と横の板を重ねている。
+	var tail := Vector3(0.0, 0.0, ARROW_SHAFT.z * 0.45)
+	LowPoly.append_shape(st, fletch, tail, ARROW_FLETCH_COLOR)
+	LowPoly.append_shape(st, fletch_flat, tail, ARROW_FLETCH_COLOR)
+	st.generate_normals()
+	st.set_material(LowPoly.vertex_color_material())
+	_shared_arrow = st.commit()
+	return _shared_arrow
 
 
 ## 近接の一撃で体ごと前へ小さく踏み込む。look_at で -Z が正面になっているので、
@@ -260,19 +324,22 @@ func _lunge() -> void:
 	_lunge_tween.tween_property(_visual, ^"position:z", 0.0, LUNGE_TIME * 0.6)
 
 
-## 振り上げた剣を振り下ろしてから、また構え直す（=rest_rotation へ戻る）。
-## Sword メッシュは Arm.R の子として書き出されているので、Arm.R だけ回せば
-## 剣も付いてくる（README のとおり）。骨アニメではなく 1 ノードの回転 tween。
-func _swing_arm() -> void:
+## 腕を angle_degrees だけ振ってから、また構え直す（=rest_rotation へ戻る）。
+##
+## 武器メッシュは持ち手の腕の子として書き出されているので、腕だけ回せば
+## 剣も弓も付いてくる（モデル側 README のとおり）。骨アニメではなく 1 ノードの回転 tween。
+## 衛兵は大きく振り下ろし、弓兵は浅く速く弾く（弦を放した勢い）。
+func _swing_arm(angle_degrees: float, duration: float) -> void:
 	if _swing_tween != null and _swing_tween.is_valid():
 		_swing_tween.kill()
 	_swing_node.rotation = _swing_rest_rotation
 	_swing_tween = create_tween()
 	_swing_tween.tween_property(
-		_swing_node, ^"rotation:x", _swing_rest_rotation.x + deg_to_rad(SWING_ANGLE), SWING_TIME * 0.4
+		_swing_node, ^"rotation:x", _swing_rest_rotation.x + deg_to_rad(angle_degrees),
+		duration * 0.4
 	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	_swing_tween.tween_property(
-		_swing_node, ^"rotation:x", _swing_rest_rotation.x, SWING_TIME * 0.6
+		_swing_node, ^"rotation:x", _swing_rest_rotation.x, duration * 0.6
 	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
 
 
@@ -444,11 +511,20 @@ func _build_model_visual() -> void:
 			node.set_surface_override_material(surface, material)
 			_model_materials.append({"material": material, "base": material.albedo_color})
 
-	# 振れる腕を持つモデル（剣を振り上げた衛兵）だけ、そのノードの回転を控えておく。
-	# 盾兵のモデルには無いので null のままになり、_play_attack_vfx() は _lunge() を使う。
-	_swing_node = model.find_child(SWING_NODE_NAME, true, false) as Node3D
+	# 振れる腕を持つモデル（剣を振り上げた衛兵・弓を引いた弓兵）だけ、
+	# そのノードの回転を控えておく。盾兵のモデルには無いので null のままになり、
+	# _play_attack_vfx() は _lunge() を使う。
+	_swing_node = model.find_child(_swing_node_name(), true, false) as Node3D
 	if _swing_node != null:
 		_swing_rest_rotation = _swing_node.rotation
+	# 弓を握っている拳。あれば矢はここから飛ぶ（無ければ体の高さから）。
+	_bow_node = model.find_child(&"Bow", true, false) as Node3D
+
+
+## 振る腕の名前。武器を持っている側を振るが、弓兵だけは**引き手**を弾く
+## （弓を持つ手を振り回すと、構えたまま弓ごと動いてしまう）。
+func _swing_node_name() -> StringName:
+	return &"Arm.L" if data.gear == WarriorData.Gear.BOW else &"Arm.R"
 
 
 func _all_mesh_instances(node: Node) -> Array[MeshInstance3D]:

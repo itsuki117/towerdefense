@@ -35,6 +35,12 @@ MODEL_DIR = os.path.join(ROOT, "assets", "models")
 # muzzle  : Muzzle の位置（Turret ローカル）。
 #           mount と muzzle は export_tower_models.py が出力した値をそのまま写す。
 # upgrade : この段から次の段へ上げる費用。最終段は 0（これ以上上がらない）。
+# shot    : 弾の種類（TowerData.Shot: 0=BOLT 1=SHELL 2=ORB 3=BEAM）。
+# shot_color / shot_scale : 弾の色と太さ。**段ごとに変える**ので、飛んでいる弾を
+#           見ただけで何段目のタワーが撃ったのか分かる。
+# splash  : 着弾時に巻き込む半径 (m)。0 なら単体攻撃。最終段だけが持つ。
+
+BOLT, SHELL, ORB, BEAM = 0, 1, 2, 3
 
 TIERS = [
     {
@@ -42,32 +48,50 @@ TIERS = [
         "mount": 0.52, "muzzle": (0.09, 0.175, -0.56),
         "cost": 200, "damage": 4, "range": 6.0, "rate": 1.6, "speed": 18.0,
         "color": (0.85, 0.72, 0.35), "upgrade": 600,
+        "shot": BOLT, "shot_color": (1.0, 0.88, 0.45), "shot_scale": 0.9, "splash": 0.0,
     },
     {
         "file": "tower_cannon", "name": "キャノンタワー", "model": "tower_cannon",
         "mount": 0.4473, "muzzle": (0.09, 0.188, -0.898),
         "cost": 250, "damage": 7, "range": 6.5, "rate": 1.6, "speed": 19.0,
         "color": (0.88, 0.66, 0.32), "upgrade": 960,
+        "shot": SHELL, "shot_color": (1.0, 0.74, 0.32), "shot_scale": 1.05, "splash": 0.0,
     },
     {
         "file": "tower_heavy", "name": "ヘビータワー", "model": "tower_heavy",
         "mount": 0.6152, "muzzle": (0.09, 0.19, -0.996),
         "cost": 305, "damage": 11, "range": 7.0, "rate": 1.7, "speed": 20.0,
         "color": (0.92, 0.6, 0.3), "upgrade": 1200,
+        "shot": SHELL, "shot_color": (1.0, 0.6, 0.26), "shot_scale": 1.25, "splash": 0.0,
     },
     {
         "file": "tower_siege", "name": "シージタワー", "model": "tower_siege",
         "mount": 0.808, "muzzle": (0.09, 0.1915, -1.175),
         "cost": 370, "damage": 16, "range": 7.5, "rate": 1.7, "speed": 21.0,
         "color": (0.96, 0.56, 0.3), "upgrade": 1600,
+        "shot": SHELL, "shot_color": (1.0, 0.46, 0.22), "shot_scale": 1.5, "splash": 0.0,
     },
     {
+        # 砲身が 1.35 m と系統でいちばん長く、見た目がレールガンなので、
+        # 最終段だけ弾を飛ばさず光線で即着弾させ、周りも巻き込む。
+        # **弾速だけ飛び抜けて速い。** 見た目は光線（BeamFx）だが、当てるのは
+        # 他の段と同じく飛んでいる弾のほうなので、的が先に倒れれば無駄弾も出る。
+        # 8 m を 0.13 秒で渡るので、見た目は「撃った瞬間に当たっている」で通る。
         "file": "tower_apex", "name": "エイペックスタワー", "model": "tower_apex",
         "mount": 0.975, "muzzle": (0.0, 0.25, -1.345),
         "cost": 440, "damage": 22, "range": 8.0, "rate": 1.8, "speed": 22.0,
         "color": (1.0, 0.52, 0.34), "upgrade": 0,
+        "shot": BEAM, "shot_color": (1.0, 0.9, 0.62), "shot_scale": 1.6, "splash": 1.0,
     },
 ]
+## 巻き込まれた敵に通るダメージの割合。狙われた 1 体には常に全部入る。
+##
+## **半径と割合は実測で絞った値。** 最初 2.2 m / 0.5 で出してみたら、
+## エイペックス 3 本だけでステージ 1 をライフ 20 のまま完封してしまい、
+## 「強化だけでは勝てない（置ける本数と役職の組み合わせが要る）」という
+## §16.4-5 の担保が崩れた。道の上で敵が詰まるので、半径が広いと 1 発で
+## 4〜5 体に入ってしまうのが効きすぎる原因。
+SPLASH_FALLOFF = 0.25
 
 
 # --- 検算 ---------------------------------------------------------------------
@@ -82,6 +106,19 @@ def verify():
                     "%s が段 %d で増えていない (%s -> %s)"
                     % (key, i + 1, values[i - 1], values[i])
                 )
+    scales = [tier["shot_scale"] for tier in TIERS]
+    for i in range(1, len(scales)):
+        if scales[i] <= scales[i - 1]:
+            problems.append(
+                "shot_scale が段 %d で太くなっていない (%s -> %s)"
+                % (i + 1, scales[i - 1], scales[i])
+            )
+    colors = [tier["shot_color"] for tier in TIERS]
+    if len(set(colors)) != len(colors):
+        problems.append("shot_color が段で重複している（弾を見て段が分からない）")
+    for i, tier in enumerate(TIERS[:-1]):
+        if tier["splash"] != 0.0:
+            problems.append("%s に巻き込みが付いている（最終段だけのはず）" % tier["file"])
     if TIERS[-1]["upgrade"] != 0:
         problems.append("最終段に upgrade_cost が残っている（鎖が終わらない）")
     for tier in TIERS[:-1]:
@@ -160,6 +197,11 @@ def resource_text(tier, next_tier):
         'projectile_speed = %s' % _float(tier["speed"]),
         'effect = 0',
         'body_color = Color(%g, %g, %g, 1)' % tier["color"],
+        'shot = %d' % tier["shot"],
+        'shot_color = Color(%g, %g, %g, 1)' % tier["shot_color"],
+        'shot_scale = %s' % _float(tier["shot_scale"]),
+        'splash_radius = %s' % _float(tier["splash"]),
+        'splash_falloff = %s' % _float(SPLASH_FALLOFF),
         'upgrade_cost = %d' % tier["upgrade"],
     ]
     if next_tier is not None:
@@ -170,10 +212,13 @@ def resource_text(tier, next_tier):
 
 def build():
     problems = verify()
+    names = {BOLT: "BOLT", SHELL: "SHELL", ORB: "ORB", BEAM: "BEAM"}
     for i, tier in enumerate(TIERS):
-        print("%-14s 段 %d  設置 %3d G / ダメージ %2d / 射程 %.1f / 強化 %3d G"
+        splash = "巻き込み %.1fm" % tier["splash"] if tier["splash"] > 0 else "単体"
+        print("%-14s 段 %d  設置 %3d G / ダメージ %2d / 射程 %.1f / 強化 %4d G"
+              " / 弾 %-5s x%.2f / %s"
               % (tier["file"], i + 1, tier["cost"], tier["damage"], tier["range"],
-                 tier["upgrade"]))
+                 tier["upgrade"], names[tier["shot"]], tier["shot_scale"], splash))
     if problems:
         for problem in problems:
             print("    - " + problem)

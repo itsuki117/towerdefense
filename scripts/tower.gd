@@ -29,16 +29,28 @@ const PAD_FOOTPRINT_SCALE := 0.8
 ## 隣のタワーの土台とつながったり、隣をクリックしてしまったりしないようにする。
 const FOOTPRINT_LIMIT := 1.7
 
+## 撃った反動で砲身が後ろへ下がる量と時間。
+##
+## 弾が太いタワーほど大きく蹴る（shot_scale を掛ける）ので、段が上がったことが
+## 撃ち方にも出る。動かすのは **TurretModel**（砲塔の子）で、Muzzle は動かさない
+## ——弾の出る位置が反動でぶれると、着弾までの見た目がちらつくため。
+const RECOIL_DISTANCE := 0.09
+const RECOIL_TIME := 0.16
+
 @export var data: TowerData
 @export var projectile_scene: PackedScene
 
 @onready var _turret: Node3D = $Turret
+## 反動で動かす砲身。プリミティブ表示のタワーには無いので null になりうる。
+@onready var _turret_model: Node3D = get_node_or_null(^"Turret/TurretModel")
 @onready var _muzzle: Marker3D = $Turret/Muzzle
 @onready var _range_area: Area3D = $Range
 @onready var _range_shape: CollisionShape3D = $Range/CollisionShape3D
 @onready var _fire_timer: Timer = $FireTimer
 
 var _current_target: Enemy = null
+## 進行中の反動。連射が速いタワーで重ねて張ると砲身が飛ぶので、張り直す前に止める。
+var _recoil_tween: Tween = null
 ## モデル全体の大きさ（タワー原点まわり）。高さとカメラの寄りに使う。
 var _bounds := AABB()
 ## **土台部分だけ**の大きさ。石の土台とクリック判定の太さに使う。
@@ -137,19 +149,57 @@ func _on_fire_timer_timeout() -> void:
 
 
 func _shoot(target: Enemy) -> void:
-	if projectile_scene == null:
+	if not _fire_projectile(target):
 		return
-	var projectile := projectile_scene.instantiate() as Projectile
-	if projectile == null:
-		return
-	_projectile_parent().add_child(projectile)
-	projectile.global_position = _muzzle.global_position
-	projectile.launch(target, data)
+	# レールガン（BEAM）は弾が見えない代わりに、撃った線だけを残す。
+	if data.shot == TowerData.Shot.BEAM:
+		_draw_beam(target)
 
 	# 砲身の前方 = Muzzle の -Z。砲塔を look_at で回しているのでそのまま使える。
 	var forward := -_muzzle.global_transform.basis.z
-	Burst.spawn(self, _muzzle.global_position, Burst.Kind.MUZZLE, data.body_color, forward)
+	Burst.spawn(self, _muzzle.global_position, Burst.Kind.MUZZLE, data.shot_color, forward)
 	Sfx.play(data.shoot_sfx, -10.0)
+	_recoil()
+
+
+func _fire_projectile(target: Enemy) -> bool:
+	if projectile_scene == null:
+		return false
+	var projectile := projectile_scene.instantiate() as Projectile
+	if projectile == null:
+		return false
+	_projectile_parent().add_child(projectile)
+	projectile.global_position = _muzzle.global_position
+	projectile.launch(target, data)
+	return true
+
+
+## 撃った線を引く。**当てるのは他のタワーと同じく飛んでいる弾のほう**で、
+## ここは見た目だけ（弾自体は BEAM のとき非表示になっている）。
+##
+## 撃った瞬間に当ててしまう（ヒットスキャンにする）と、**弾が飛んでいる間に
+## 的が倒れて無駄弾になる**ぶんが丸ごと無くなり、実効火力が跳ね上がる
+## ——実測で「3 本でステージ 1 を完封」まで行った（連射や巻き込みを削っても戻らず、
+## 無駄弾が出ないこと自体が効いていた）。見た目を光線にしたいだけなので、
+## 弾としての性質は他の段と揃えたままにしてある。
+func _draw_beam(target: Enemy) -> void:
+	var aim := target.global_position + Vector3.UP * Projectile.TARGET_HEIGHT_OFFSET
+	BeamFx.spawn(self, _muzzle.global_position, aim, data.shot_color)
+
+
+## 撃った反動で砲身を後ろへ蹴ってから戻す。
+func _recoil() -> void:
+	if _turret_model == null:
+		return
+	if _recoil_tween != null and _recoil_tween.is_valid():
+		_recoil_tween.kill()
+	_turret_model.position.z = 0.0
+	# 砲身の前は -Z なので、+Z へ下げれば後ろへ蹴ったことになる。
+	var kick := RECOIL_DISTANCE * data.shot_scale
+	_recoil_tween = create_tween()
+	_recoil_tween.tween_property(_turret_model, ^"position:z", kick, RECOIL_TIME * 0.25)
+	_recoil_tween.tween_property(_turret_model, ^"position:z", 0.0, RECOIL_TIME * 0.75) \
+		.set_trans(Tween.TRANS_SINE)
 
 
 ## 弾はタワーの子にしない（タワーが消えても飛んでいる弾が巻き込まれないように）。
