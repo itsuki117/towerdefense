@@ -18,6 +18,6 @@ body_color = Color(1, 0.52, 0.34, 1)
 shot = 3
 shot_color = Color(1, 0.9, 0.62, 1)
 shot_scale = 1.6
-splash_radius = 1.0
+splash_radius = 1.6
 splash_falloff = 0.25
 upgrade_cost = 0

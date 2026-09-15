@@ -20,6 +20,10 @@ const ARC_RATIO := 0.18
 const ARC_MAX := 1.6
 ## ORB がゆっくり回る速さ (度/秒)。氷の塊が漂う感じを出すためだけのもの。
 const ORB_SPIN := 120.0
+## 巻き込みを持たない弾の着弾で出す輪の半径 (m)。当たった場所を読ませるだけの大きさ。
+const RING_MIN_RADIUS := 0.7
+## 爆発のあとに残る煙の色。弾の色に染めると煙に見えないので、灰色で固定する。
+const SMOKE_COLOR := Color(0.32, 0.3, 0.29)
 
 ## メッシュとマテリアルの置き場。形は種類ごと、色は色ごとに使い回す。
 ## 後半の波では毎秒数十発飛ぶので、そのたびに作ると細かいゴミが増える。
@@ -78,7 +82,8 @@ func _physics_process(delta: float) -> void:
 	var step := _speed * delta
 
 	if to_target.length() <= maxf(step, HIT_RADIUS):
-		apply_hit(self, _data, _target, global_position)
+		# 飛んできた向きをそのまま渡す（火花を撃った方向へ抜けさせるため）。
+		apply_hit(self, _data, _target, global_position, to_target.normalized())
 		queue_free()
 		return
 
@@ -112,17 +117,47 @@ func _face_travel(previous: Vector3, delta: float) -> void:
 		look_at(global_position + travel, Vector3.UP)
 
 
-## 着弾処理。**弾を飛ばさない BEAM からも呼ぶ**ので static にしてある。
+## 着弾処理。演出と巻き込みの入口をここ 1 か所にまとめてある。
 ##
 ## 追加効果を先に入れるのは、take_damage で敵が撃破処理に入ると
 ## その後の apply_slow が無視されるため。
-static func apply_hit(source: Node, data: TowerData, target: Node3D, at: Vector3) -> void:
+static func apply_hit(
+	source: Node, data: TowerData, target: Node3D, at: Vector3, forward := Vector3.ZERO
+) -> void:
 	if data == null:
 		return
-	Burst.spawn(source, at, Burst.Kind.HIT, data.shot_color)
+	_impact_fx(source, data, at, forward)
 	_hit_one(data, target, data.damage)
 	if data.splash_radius > 0.0:
 		_splash(source, data, target, at)
+
+
+## 着弾の見せ方。**弾の種類ごとに変える**——同じ爆発を使い回すと、
+## 段を分けた意味（何が当たったのか分かる）が着弾の瞬間に消えてしまう。
+static func _impact_fx(source: Node, data: TowerData, at: Vector3, forward: Vector3) -> void:
+	# 輪は巻き込みの範囲をそのまま見せる。単体攻撃の弾でも、炸裂するものには
+	# 小さい輪を出す（当たった位置が読めるので、撃ち合いの手応えが出る）。
+	var ring := data.splash_radius if data.splash_radius > 0.0 else RING_MIN_RADIUS
+	match data.shot:
+		TowerData.Shot.SHELL:
+			Burst.spawn(source, at, Burst.Kind.BLAST, data.shot_color, Vector3.ZERO, data.shot_scale)
+			Burst.spawn(source, at, Burst.Kind.SMOKE, SMOKE_COLOR, Vector3.ZERO, data.shot_scale)
+			ShockRing.spawn(source, at, data.shot_color, ring)
+		TowerData.Shot.BEAM:
+			# 火花は撃った向きへ抜ける。貫いた感じを出すため。
+			Burst.spawn(source, at, Burst.Kind.SPARK, data.shot_color, forward, data.shot_scale)
+			Burst.spawn(
+				source, at, Burst.Kind.BLAST, data.shot_color, Vector3.ZERO, data.shot_scale * 0.8
+			)
+			ShockRing.spawn(source, at, data.shot_color, ring)
+		TowerData.Shot.ORB:
+			# 氷は砕ける。破片を少し大きめに撒いて、輪は淡く広げる。
+			Burst.spawn(
+				source, at, Burst.Kind.HIT, data.shot_color, Vector3.ZERO, data.shot_scale * 1.4
+			)
+			ShockRing.spawn(source, at, data.shot_color, ring * 0.8)
+		_:
+			Burst.spawn(source, at, Burst.Kind.HIT, data.shot_color, Vector3.ZERO, data.shot_scale)
 
 
 ## 巻き込み。狙われた 1 体は上で処理済みなので、ここでは周りだけを見る。
@@ -136,7 +171,6 @@ static func _splash(source: Node, data: TowerData, target: Node3D, at: Vector3) 
 		if enemy.global_position.distance_squared_to(at) > radius_squared:
 			continue
 		_hit_one(data, enemy, amount)
-	Burst.spawn(source, at, Burst.Kind.DEATH, data.shot_color)
 
 
 static func _hit_one(data: TowerData, target: Node3D, amount: int) -> void:

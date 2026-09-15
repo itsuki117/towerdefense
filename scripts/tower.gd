@@ -37,6 +37,13 @@ const FOOTPRINT_LIMIT := 1.7
 const RECOIL_DISTANCE := 0.09
 const RECOIL_TIME := 0.16
 
+## レールガンの光線の見せ方。芯は白く細く短命、外側は色付きで太く少し長く残す。
+const BEAM_CORE_COLOR := Color(1.0, 0.99, 0.95)
+const BEAM_HALO_SCALE := 2.6
+const BEAM_HALO_TIME := 0.26
+## 撃った瞬間に砲口へ置く輪の半径 (m)。
+const BEAM_MUZZLE_RING := 0.9
+
 @export var data: TowerData
 @export var projectile_scene: PackedScene
 
@@ -157,7 +164,10 @@ func _shoot(target: Enemy) -> void:
 
 	# 砲身の前方 = Muzzle の -Z。砲塔を look_at で回しているのでそのまま使える。
 	var forward := -_muzzle.global_transform.basis.z
-	Burst.spawn(self, _muzzle.global_position, Burst.Kind.MUZZLE, data.shot_color, forward)
+	# 砲口のフラッシュは弾の太さに連れて大きくする（段が上がると撃ち方も派手になる）。
+	Burst.spawn(
+		self, _muzzle.global_position, Burst.Kind.MUZZLE, data.shot_color, forward, data.shot_scale
+	)
 	Sfx.play(data.shoot_sfx, -10.0)
 	_recoil()
 
@@ -184,7 +194,12 @@ func _fire_projectile(target: Enemy) -> bool:
 ## 弾としての性質は他の段と揃えたままにしてある。
 func _draw_beam(target: Enemy) -> void:
 	var aim := target.global_position + Vector3.UP * Projectile.TARGET_HEIGHT_OFFSET
-	BeamFx.spawn(self, _muzzle.global_position, aim, data.shot_color)
+	var from := _muzzle.global_position
+	# 芯（細く白い）と外側（太く色付き）の 2 本を重ねる。1 本だとただの棒に見える。
+	BeamFx.spawn(self, from, aim, data.shot_color, BEAM_HALO_SCALE, BEAM_HALO_TIME)
+	BeamFx.spawn(self, from, aim, BEAM_CORE_COLOR, 1.0, BeamFx.LIFETIME)
+	# 撃った瞬間、砲口に輪を置く。撃ち出した勢いを出すため。
+	ShockRing.spawn(self, from, data.shot_color, BEAM_MUZZLE_RING)
 
 
 ## 撃った反動で砲身を後ろへ蹴ってから戻す。

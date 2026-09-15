@@ -309,7 +309,9 @@ func _check_endless(main: Node) -> void:
 ## 弱い弾を連射するほど損）。段の違うタワーで殴って、通る量の差を出す。
 func _check_enemies(main: Node) -> void:
 	var waves: WaveManager = main.get_node(^"WaveManager")
-	var files := ["enemy_normal", "enemy_fast", "enemy_armored", "enemy_boss"]
+	var files := [
+		"enemy_normal", "enemy_fast", "enemy_armored", "enemy_splitter", "enemy_boss",
+	]
 	var tiers := ["tower_arrow", "tower_heavy", "tower_apex"]
 
 	print("VisPreview: --- 1 発で通るダメージ（硬さ 3.0 の波） ---")
@@ -329,6 +331,27 @@ func _check_enemies(main: Node) -> void:
 		waves.call(&"_spawn", load("res://resources/enemies/%s.tres" % file_name), 3.0)
 		await get_tree().create_timer(1.6).timeout
 	print("VisPreview: 敵 %d 体を並べた" % get_tree().get_nodes_in_group(&"enemy").size())
+
+	# **倒したら増えるか。** 分裂は「まとめて消すと的が増える」ことが肝なので、
+	# 見た目だけでなく数で確かめる。
+	var splitter := _find_enemy_named("ぶんれつスライム")
+	if splitter == null:
+		return
+	var before := get_tree().get_nodes_in_group(&"enemy").size()
+	splitter.take_damage(99999)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	print("VisPreview: 分裂スライムを倒した 敵 %d 体 -> %d 体" % [
+		before, get_tree().get_nodes_in_group(&"enemy").size(),
+	])
+
+
+func _find_enemy_named(display_name: String) -> Enemy:
+	for node in get_tree().get_nodes_in_group(&"enemy"):
+		var enemy := node as Enemy
+		if enemy != null and enemy.data != null and enemy.data.display_name == display_name:
+			return enemy
+	return null
 
 
 ## 戦士で敵の流れを寄せられるかを確かめる（分かれ道のあるステージ専用）。

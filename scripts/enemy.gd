@@ -18,6 +18,9 @@ extends Node3D
 signal died(gold_value: int)
 ## 拠点に到達した。引数はライフ減少量。
 signal reached_end(damage: int)
+## 倒されて分裂する。**湧かせるのは WaveManager の仕事**
+## （敵シーンを持っているのはあちらで、敵自身は自分の増やし方を知らない）。
+signal split(child_data: EnemyData, count: int, source: Enemy)
 
 ## 減速中の体色。元の色にこの色を混ぜて、効いていることを見て分かるようにする。
 const SLOW_TINT := Color(0.45, 0.75, 1.0)
@@ -154,6 +157,33 @@ func _start_at(node: int) -> void:
 	_place_on_edge(_graph.edge_length(_edge))
 
 
+## 今どの辺のどこにいるか。分裂した子に同じ場所を引き継がせるために使う。
+func path_state() -> Dictionary:
+	return {"from": _from_node, "to": _to_node, "edge": _edge, "travelled": _travelled}
+
+
+## path_state() で取った位置から歩き出す。**add_child のあとに呼ぶこと**
+## （_ready が湧き口から始めてしまうので、そのあとで上書きする）。
+##
+## side は道の中心からの左右のずれ。同時に分かれた子が重なって 1 体に見えないよう、
+## 呼ぶ側が散らして渡す。
+func resume_at(state: Dictionary, side: float) -> void:
+	if _graph == null or _finished:
+		return
+	_from_node = state.get("from", _from_node)
+	_to_node = state.get("to", _to_node)
+	_edge = state.get("edge", _edge)
+	_travelled = state.get("travelled", _travelled)
+	if _edge < 0:
+		return
+	_place_on_edge(_graph.edge_length(_edge))
+	# 道に沿った横ずれ。進む向きの真横へ寄せる。
+	var forward := _graph.position_of(_to_node) - _graph.position_of(_from_node)
+	forward.y = 0.0
+	if forward.length_squared() > 0.0001:
+		position += forward.normalized().cross(Vector3.UP) * side
+
+
 ## 今いる節から next へ、辺を 1 本ぶん乗り換える。つながっていなければ false。
 func _step_to(next: int) -> bool:
 	# まだ辺に乗っていない（湧いた直後）なら _from_node が今いる節。
@@ -203,6 +233,11 @@ func can_be_engaged() -> bool:
 ## 波ごとの硬さを掛けたあとの最大 HP。
 func scaled_max_hp() -> int:
 	return _max_hp
+
+
+## この敵に掛かっている波ごとの硬さ。分裂した子へ引き継ぐために使う。
+func hp_scale() -> float:
+	return _hp_scale
 
 
 ## 今、戦士に足止めされているか。タワーの狙いを決めるのに使う。
@@ -340,6 +375,10 @@ func _finish(reached_goal: bool) -> void:
 		# エフェクトは自分の子にしない。queue_free で巻き込まれてしまう。
 		Burst.spawn(self, _visual.global_position, Burst.Kind.DEATH, data.body_color)
 		Sfx.play(&"enemy_die", -4.0)
+		# 分裂は**倒されたときだけ**。通り抜けた敵まで増えると際限が無くなる。
+		# queue_free より前に流すので、受け手はまだこの敵の位置を読める。
+		if data.split_into != null and data.split_count > 0:
+			split.emit(data.split_into, data.split_count, self)
 		died.emit(data.gold_value)
 	queue_free()
 

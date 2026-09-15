@@ -29,3 +29,13 @@ extends Resource
 @export_range(0.1, 2.0, 0.05) var body_scale: float = 1.0
 ## 装甲を持つ敵にかぶせる殻の色。armor が 0 なら使われない。
 @export var armor_color: Color = Color(0.62, 0.66, 0.72)
+
+@export_group("分裂")
+## 倒されたときに湧く子の種別。null なら分裂しない。
+##
+## **範囲攻撃への答えとして足した。** 固まったところを爆発でまとめて消せるように
+## なったぶん、「まとめて消すと的が増える」敵を用意して釣り合いを戻している。
+## 拠点に到達したときは分裂しない（通り抜けた敵が増え続けてしまう）。
+@export var split_into: EnemyData
+## 何体に分かれるか。
+@export_range(0, 4, 1) var split_count: int = 2

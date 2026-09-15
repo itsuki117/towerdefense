@@ -18,7 +18,17 @@ static var _shared_mesh: BoxMesh = null
 
 ## from から to へ 1 本の線を出す。置き場は Burst と同じくグループで探すので、
 ## 撃ったタワーが消えても線だけは残って消える。
-static func spawn(source: Node, from: Vector3, to: Vector3, color: Color) -> void:
+##
+## thickness と lifetime を変えて**重ねて呼ぶ**と、芯と外側の 2 本になる
+## （細く白い芯 ＋ 太く色付きで少し長く残る外側）。1 本だけだとただの棒に見える。
+static func spawn(
+	source: Node,
+	from: Vector3,
+	to: Vector3,
+	color: Color,
+	thickness: float = 1.0,
+	lifetime: float = LIFETIME
+) -> void:
 	if source == null or not source.is_inside_tree():
 		return
 	var container := source.get_tree().get_first_node_in_group(&"effect_container")
@@ -36,15 +46,15 @@ static func spawn(source: Node, from: Vector3, to: Vector3, color: Color) -> voi
 	# 中点に置いて的のほうを向け、奥行きだけ距離ぶん伸ばす。
 	beam.global_position = (from + to) * 0.5
 	beam.look_at(to, Vector3.UP)
-	beam.scale = Vector3(1.0, 1.0, length)
-	beam._fade()
+	beam.scale = Vector3(thickness, thickness, length)
+	beam._fade(lifetime)
 
 
 ## 太さだけを絞って消す。奥行き（= 距離）はそのまま残す。
-func _fade() -> void:
+func _fade(lifetime: float) -> void:
 	var tween := create_tween()
-	tween.tween_property(self, ^"scale:x", 0.0, LIFETIME).set_trans(Tween.TRANS_QUAD)
-	tween.parallel().tween_property(self, ^"scale:y", 0.0, LIFETIME).set_trans(Tween.TRANS_QUAD)
+	tween.tween_property(self, ^"scale:x", 0.0, lifetime).set_trans(Tween.TRANS_QUAD)
+	tween.parallel().tween_property(self, ^"scale:y", 0.0, lifetime).set_trans(Tween.TRANS_QUAD)
 	tween.finished.connect(queue_free)
 
 

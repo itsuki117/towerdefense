@@ -55,21 +55,21 @@ TIERS = [
         "mount": 0.4473, "muzzle": (0.09, 0.188, -0.898),
         "cost": 250, "damage": 7, "range": 6.5, "rate": 1.6, "speed": 19.0,
         "color": (0.88, 0.66, 0.32), "upgrade": 960,
-        "shot": SHELL, "shot_color": (1.0, 0.74, 0.32), "shot_scale": 1.05, "splash": 0.0,
+        "shot": SHELL, "shot_color": (1.0, 0.74, 0.32), "shot_scale": 1.05, "splash": 0.8,
     },
     {
         "file": "tower_heavy", "name": "ヘビータワー", "model": "tower_heavy",
         "mount": 0.6152, "muzzle": (0.09, 0.19, -0.996),
         "cost": 305, "damage": 11, "range": 7.0, "rate": 1.7, "speed": 20.0,
         "color": (0.92, 0.6, 0.3), "upgrade": 1200,
-        "shot": SHELL, "shot_color": (1.0, 0.6, 0.26), "shot_scale": 1.25, "splash": 0.0,
+        "shot": SHELL, "shot_color": (1.0, 0.6, 0.26), "shot_scale": 1.25, "splash": 1.0,
     },
     {
         "file": "tower_siege", "name": "シージタワー", "model": "tower_siege",
         "mount": 0.808, "muzzle": (0.09, 0.1915, -1.175),
         "cost": 370, "damage": 16, "range": 7.5, "rate": 1.7, "speed": 21.0,
         "color": (0.96, 0.56, 0.3), "upgrade": 1600,
-        "shot": SHELL, "shot_color": (1.0, 0.46, 0.22), "shot_scale": 1.5, "splash": 0.0,
+        "shot": SHELL, "shot_color": (1.0, 0.46, 0.22), "shot_scale": 1.5, "splash": 1.2,
     },
     {
         # 砲身が 1.35 m と系統でいちばん長く、見た目がレールガンなので、
@@ -81,7 +81,7 @@ TIERS = [
         "mount": 0.975, "muzzle": (0.0, 0.25, -1.345),
         "cost": 440, "damage": 22, "range": 8.0, "rate": 1.8, "speed": 22.0,
         "color": (1.0, 0.52, 0.34), "upgrade": 0,
-        "shot": BEAM, "shot_color": (1.0, 0.9, 0.62), "shot_scale": 1.6, "splash": 1.0,
+        "shot": BEAM, "shot_color": (1.0, 0.9, 0.62), "shot_scale": 1.6, "splash": 1.6,
     },
 ]
 ## 巻き込まれた敵に通るダメージの割合。狙われた 1 体には常に全部入る。
@@ -116,9 +116,15 @@ def verify():
     colors = [tier["shot_color"] for tier in TIERS]
     if len(set(colors)) != len(colors):
         problems.append("shot_color が段で重複している（弾を見て段が分からない）")
-    for i, tier in enumerate(TIERS[:-1]):
-        if tier["splash"] != 0.0:
-            problems.append("%s に巻き込みが付いている（最終段だけのはず）" % tier["file"])
+    if TIERS[0]["splash"] != 0.0:
+        problems.append("段 1 に巻き込みが付いている（矢弾は炸裂しない）")
+    splashes = [tier["splash"] for tier in TIERS]
+    for i in range(2, len(splashes)):
+        if splashes[i] <= splashes[i - 1]:
+            problems.append(
+                "巻き込みの半径が段 %d で広がっていない (%s -> %s)"
+                % (i + 1, splashes[i - 1], splashes[i])
+            )
     if TIERS[-1]["upgrade"] != 0:
         problems.append("最終段に upgrade_cost が残っている（鎖が終わらない）")
     for tier in TIERS[:-1]:

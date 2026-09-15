@@ -11,6 +11,8 @@ signal countdown_changed(seconds_left: float)
 
 ## 「湧き切ったか」「全滅したか」を見に行く間隔 (秒)。
 const POLL_INTERVAL := 0.1
+## 分裂した子を道の中心から左右へ散らす幅 (m)。道の半幅より内側に収める。
+const SPLIT_SPREAD := 0.5
 
 @export var enemy_scene: PackedScene
 ## WaveData の配列。**空ならステージのデータ (StageData.waves) を使う。**
@@ -153,15 +155,36 @@ func _spawn_entry(entry: WaveEntry) -> void:
 	_active_spawners -= 1
 
 
-func _spawn(data: EnemyData, hp_scale: float) -> void:
+func _spawn(data: EnemyData, hp_scale: float) -> Enemy:
 	var enemy := enemy_scene.instantiate() as Enemy
 	if enemy == null:
-		return
+		return null
 	# add_child より前に渡しておくと、敵の _ready で HP・見た目・出発点が確定する。
 	enemy.setup(_level.graph, data, hp_scale)
 	enemy.died.connect(_on_enemy_died)
 	enemy.reached_end.connect(_on_enemy_reached_end)
+	enemy.split.connect(_on_enemy_split)
 	_enemy_parent().add_child(enemy)
+	return enemy
+
+
+## 分裂した子を、親が倒れた場所から歩き出させる。
+##
+## **親の HP 倍率をそのまま渡す。** 波が進むほど子も硬くなるので、
+## 後半で分裂が「ただの的が増えるだけ」に薄まらない。
+## 際限を付けるのは EnemyData 側の責任（子には split_into を持たせない）。
+func _on_enemy_split(child_data: EnemyData, count: int, source: Enemy) -> void:
+	if child_data == null or source == null:
+		return
+	var state := source.path_state()
+	var hp_scale := source.hp_scale()
+	for i in count:
+		var child := _spawn(child_data, hp_scale)
+		if child == null:
+			continue
+		# 左右に振り分けて置く。同じ点に出すと 1 体にしか見えない。
+		var side := SPLIT_SPREAD * (float(i) / maxf(float(count - 1), 1.0) - 0.5) * 2.0
+		child.resume_at(state, side)
 
 
 ## 敵の置き場。タワーや弾と同じくグループで探す（ツリーの形に依存させない）。

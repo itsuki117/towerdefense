@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/enemy_data.gd" id="1_enemy_data"]
+
+[resource]
+script = ExtResource("1_enemy_data")
+display_name = "こぶんスライム"
+max_hp = 9
+speed = 4.2
+gold_value = 2
+damage = 1
+melee_damage = 3
+attack_rate = 1.2
+body_color = Color(0.72, 0.85, 0.35, 1)
+body_scale = 0.6
