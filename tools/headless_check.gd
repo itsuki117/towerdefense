@@ -82,7 +82,7 @@ func _dump(node: Node, depth: int) -> void:
 
 func _report_buttons() -> void:
 	print("\n========== HUD BUTTONS ==========")
-	var bar := root.get_node_or_null(^"Main/UI/HUD/TowerBar")
+	var bar := root.get_node_or_null(^"Main/UI/HUD/BuildBar/TowerRow")
 	for child in bar.get_children():
 		print("button: text='%s' disabled=%s" % [child.text, child.disabled])
 
